@@ -3,6 +3,7 @@ const config = require('../config');
 
 /**
  * Seeds the Head Admin on startup if it doesn't already exist.
+ * If it exists but password might be stale, updates the password.
  * Uses HEAD_ADMIN_USERNAME, HEAD_ADMIN_EMAIL, HEAD_ADMIN_PASSWORD from .env.
  */
 async function seedHeadAdmin() {
@@ -20,7 +21,11 @@ async function seedHeadAdmin() {
     });
 
     if (existing) {
-      console.log('Head Admin already exists. Skipping seeding.');
+      // Update password in case it changed in env
+      existing.password = headAdminPassword;
+      existing.isHeadAdmin = true;
+      await existing.save(); // pre-save hook will hash the password
+      console.log('Head Admin exists — password synced from env.');
       return;
     }
 
