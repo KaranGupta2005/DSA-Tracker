@@ -20,7 +20,8 @@
     "jsonwebtoken": "^9.0.2",
     "leetcode-query": "^2.0.1",
     "mongoose": "^8.9.5",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "fast-check": "^3.23.2",
