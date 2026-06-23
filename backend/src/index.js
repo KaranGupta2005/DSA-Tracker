@@ -72,9 +72,46 @@ connectDB().then(async () => {
   // Seed Head Admin on startup if not exists
   await seedHeadAdmin();
 
+  // Drop unique index on DailyProblem.date if it exists (we now allow multiple per day)
+  try {
+    const mongoose = require('mongoose');
+    const collection = mongoose.connection.collection('dailyproblems');
+    const indexes = await collection.indexes();
+    const dateIndex = indexes.find(idx => idx.key && idx.key.date && idx.unique);
+    if (dateIndex) {
+      await collection.dropIndex(dateIndex.name);
+      console.log('Dropped unique index on DailyProblem.date — multiple problems per day enabled.');
+    }
+  } catch (err) {
+    // Index might not exist — that's fine
+  }
+
   if (require.main === module) {
     app.listen(config.port, () => {
       console.log(`Server is running on port ${config.port}`);
+
+      // Start contest notification scheduler — checks every 30 minutes
+      const { notifyUpcomingContests } = require('./services/pushNotificationService');
+      const { getUpcomingContests } = require('./services/contestService');
+
+      const checkAndNotify = async () => {
+        try {
+          // First refresh the contest cache
+          await getUpcomingContests();
+          // Then check for upcoming contests and notify
+          const result = await notifyUpcomingContests();
+          if (result.notified > 0) {
+            console.log(`[Contest Notifier] Sent ${result.notified} notifications for ${result.contests} contest(s)`);
+          }
+        } catch (err) {
+          console.error('[Contest Notifier] Error:', err.message);
+        }
+      };
+
+      // Run every 30 minutes
+      setInterval(checkAndNotify, 30 * 60 * 1000);
+      // Also run once on startup after a short delay
+      setTimeout(checkAndNotify, 10000);
     });
   }
 });

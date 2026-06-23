@@ -62,35 +62,35 @@ const fetchProblemFromCF = async (contestId, index) => {
 };
 
 /**
- * Sets the daily problem for today's UTC date.
- * Fetches problem details from CF, upserts the record, and enforces 7-record retention.
- * @param {number} contestId - The Codeforces contest ID
- * @param {string} index - The problem index (e.g., "A", "B1")
- * @returns {Promise<Object>} The upserted DailyProblem document
+ * Sets a daily problem for today's UTC date.
+ * Fetches problem details from CF, creates a new record, and enforces 14-record retention.
+ * Multiple problems can be assigned per day.
  */
 const setDailyProblem = async (contestId, index) => {
   const { name, rating } = await fetchProblemFromCF(contestId, index);
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const problem = await DailyProblem.findOneAndUpdate(
-    { date: todayStr },
-    {
-      contestId,
-      index,
-      name,
-      rating,
-      date: todayStr,
-      platform: 'codeforces',
-      url: `https://codeforces.com/contest/${contestId}/problem/${index}`,
-    },
-    { upsert: true, new: true }
-  );
+  // Check if this exact problem already exists for today
+  const existing = await DailyProblem.findOne({ date: todayStr, contestId, index: { $regex: new RegExp(`^${index}$`, 'i') } });
+  if (existing) {
+    return existing; // Don't duplicate
+  }
 
-  // Enforce 7-record retention limit
+  const problem = await DailyProblem.create({
+    contestId,
+    index,
+    name,
+    rating,
+    date: todayStr,
+    platform: 'codeforces',
+    url: `https://codeforces.com/contest/${contestId}/problem/${index}`,
+  });
+
+  // Enforce 14-record retention limit
   const totalCount = await DailyProblem.countDocuments();
-  if (totalCount > 7) {
-    const toKeep = await DailyProblem.find().sort({ date: -1 }).limit(7).select('_id');
+  if (totalCount > 14) {
+    const toKeep = await DailyProblem.find().sort({ date: -1, createdAt: -1 }).limit(14).select('_id');
     const keepIds = toKeep.map((doc) => doc._id);
     await DailyProblem.deleteMany({ _id: { $nin: keepIds } });
   }
@@ -99,12 +99,12 @@ const setDailyProblem = async (contestId, index) => {
 };
 
 /**
- * Gets today's daily problem by current UTC date.
- * @returns {Promise<Object|null>} The DailyProblem document for today, or null
+ * Gets today's daily problems by current UTC date (can be multiple).
+ * @returns {Promise<Array>} Array of DailyProblem documents for today
  */
 const getTodayProblem = async () => {
   const todayStr = new Date().toISOString().split('T')[0];
-  return DailyProblem.findOne({ date: todayStr });
+  return DailyProblem.find({ date: todayStr }).sort({ createdAt: 1 });
 };
 
 /**
@@ -156,30 +156,30 @@ const checkCompletion = async (handle, memberId) => {
 /**
  * Directly sets a daily problem without fetching from Codeforces API.
  * Used for LeetCode problems or manually entered problems.
- * @param {{ name: string, url?: string, platform?: string, rating: number, contestId: number, index: string }} data
- * @returns {Promise<Object>} The upserted DailyProblem document
  */
 const setDailyProblemDirect = async (data) => {
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const problem = await DailyProblem.findOneAndUpdate(
-    { date: todayStr },
-    {
-      contestId: data.contestId || 0,
-      index: data.index || 'LC',
-      name: data.name,
-      rating: data.rating || 0,
-      url: data.url || null,
-      platform: data.platform || 'codeforces',
-      date: todayStr,
-    },
-    { upsert: true, new: true }
-  );
+  // Check if this exact problem already exists for today
+  const existing = await DailyProblem.findOne({ date: todayStr, name: data.name, platform: data.platform || 'leetcode' });
+  if (existing) {
+    return existing;
+  }
 
-  // Enforce 7-record retention limit
+  const problem = await DailyProblem.create({
+    contestId: data.contestId || 0,
+    index: data.index || 'LC',
+    name: data.name,
+    rating: data.rating || 0,
+    url: data.url || null,
+    platform: data.platform || 'codeforces',
+    date: todayStr,
+  });
+
+  // Enforce 14-record retention limit
   const totalCount = await DailyProblem.countDocuments();
-  if (totalCount > 7) {
-    const toKeep = await DailyProblem.find().sort({ date: -1 }).limit(7).select('_id');
+  if (totalCount > 14) {
+    const toKeep = await DailyProblem.find().sort({ date: -1, createdAt: -1 }).limit(14).select('_id');
     const keepIds = toKeep.map((doc) => doc._id);
     await DailyProblem.deleteMany({ _id: { $nin: keepIds } });
   }

@@ -246,6 +246,11 @@ const linkLeetcode = async (req, res, next) => {
       );
     }
 
+    // Check if user is a member (not admin)
+    if (req.user.role === 'admin') {
+      throw createAppError('FORBIDDEN', 'Admins cannot link LeetCode accounts. Please login as a member.');
+    }
+
     // Verify the LeetCode username exists via LeetCode API
     await verifyUsername(leetcodeUsername);
 
@@ -255,6 +260,10 @@ const linkLeetcode = async (req, res, next) => {
       { leetcodeUsername },
       { new: true }
     );
+
+    if (!updatedMember) {
+      throw createAppError('NOT_FOUND', 'Member account not found. Please login as a member.');
+    }
 
     res.status(200).json({
       message: 'LeetCode username linked successfully.',
@@ -344,6 +353,9 @@ const updateCodeforcesHandle = async (req, res, next) => {
     if (!codeforcesHandle) {
       throw createAppError('VALIDATION_ERROR', 'Codeforces handle is required.');
     }
+    if (req.user.role === 'admin') {
+      throw createAppError('FORBIDDEN', 'Admins cannot update Codeforces handles. Please login as a member.');
+    }
     // Verify handle exists
     const cfData = await verifyHandle(codeforcesHandle);
     // Check for duplicate
@@ -357,6 +369,9 @@ const updateCodeforcesHandle = async (req, res, next) => {
       codeforcesRating: cfData.rating,
       codeforcesRank: cfData.rank,
     }, { new: true });
+    if (!updated) {
+      throw createAppError('NOT_FOUND', 'Member account not found. Please login as a member.');
+    }
     res.json({ message: 'Codeforces handle updated successfully.', member: { id: updated._id, codeforcesHandle: updated.codeforcesHandle, codeforcesRating: updated.codeforcesRating, codeforcesRank: updated.codeforcesRank } });
   } catch (err) { next(err); }
 };

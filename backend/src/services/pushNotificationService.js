@@ -38,7 +38,7 @@ async function sendPushNotification(subscription, payload) {
  */
 async function notifyUpcomingContests() {
   const now = new Date();
-  const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+  const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
   // Fetch cached contests from both platforms
   const cachedContests = await ContestCache.find({});
@@ -47,8 +47,8 @@ async function notifyUpcomingContests() {
   for (const cache of cachedContests) {
     for (const contest of cache.contests) {
       const startTime = new Date(contest.startTime);
-      // Contest starts within 1 hour but hasn't started yet
-      if (startTime > now && startTime <= oneHourFromNow) {
+      // Contest starts within 2 hours but hasn't started yet
+      if (startTime > now && startTime <= twoHoursFromNow) {
         upcomingContests.push({
           ...contest,
           platform: cache.platform,

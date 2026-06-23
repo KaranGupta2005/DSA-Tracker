@@ -22,7 +22,7 @@ import api from '@/utils/api';
 function DailyProblemPage() {
   const { user } = useAuth();
 
-  const [todayProblem, setTodayProblem] = useState(null);
+  const [todayProblem, setTodayProblem] = useState([]);
   const [history, setHistory] = useState([]);
   const [loadingToday, setLoadingToday] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -36,7 +36,15 @@ function DailyProblemPage() {
     const fetchToday = async () => {
       try {
         const response = await api.get('/daily/today');
-        setTodayProblem(response.data);
+        // Handle both array and single object responses
+        const data = response.data;
+        if (Array.isArray(data)) {
+          setTodayProblem(data);
+        } else if (data) {
+          setTodayProblem([data]);
+        } else {
+          setTodayProblem([]);
+        }
       } catch (err) {
         const message =
           err.response?.data?.error?.message ||
@@ -188,11 +196,13 @@ function DailyProblemPage() {
           <Alert severity="warning" sx={{ mb: 4 }}>
             {error}
           </Alert>
-        ) : todayProblem ? (
+        ) : todayProblem.length > 0 ? (
+          todayProblem.map((problem, pIdx) => (
           <motion.div
+            key={problem._id || pIdx}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
+            transition={{ duration: 0.4, delay: 0.1 + pIdx * 0.1 }}
           >
             <Box
               sx={{
@@ -201,7 +211,7 @@ function DailyProblemPage() {
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: 3,
                 p: 4,
-                mb: 4,
+                mb: 3,
               }}
             >
               {/* Problem Header */}
@@ -209,19 +219,19 @@ function DailyProblemPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <CalendarToday sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 18 }} />
                   <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)' }}>
-                    {formatDate(todayProblem.date)}
+                    {formatDate(problem.date)}
                   </Typography>
                 </Box>
 
                 {/* Platform-specific badge */}
-                {isLeetCode(todayProblem) ? (
+                {isLeetCode(problem) ? (
                   <Chip
-                    label={todayProblem.index || 'Medium'}
+                    label={problem.index || 'Medium'}
                     size="small"
                     sx={{
-                      color: getDifficultyColor(todayProblem.index),
-                      borderColor: getDifficultyColor(todayProblem.index),
-                      backgroundColor: `${getDifficultyColor(todayProblem.index)}15`,
+                      color: getDifficultyColor(problem.index),
+                      borderColor: getDifficultyColor(problem.index),
+                      backgroundColor: `${getDifficultyColor(problem.index)}15`,
                       fontWeight: 700,
                     }}
                     variant="outlined"
@@ -229,12 +239,12 @@ function DailyProblemPage() {
                 ) : (
                   <Chip
                     icon={<Star sx={{ fontSize: 16 }} />}
-                    label={`Rating: ${todayProblem.rating || 'Unrated'}`}
+                    label={`Rating: ${problem.rating || 'Unrated'}`}
                     size="small"
                     sx={{
-                      color: getRatingColor(todayProblem.rating),
-                      borderColor: getRatingColor(todayProblem.rating),
-                      '& .MuiChip-icon': { color: getRatingColor(todayProblem.rating) },
+                      color: getRatingColor(problem.rating),
+                      borderColor: getRatingColor(problem.rating),
+                      '& .MuiChip-icon': { color: getRatingColor(problem.rating) },
                     }}
                     variant="outlined"
                   />
@@ -242,52 +252,39 @@ function DailyProblemPage() {
               </Box>
 
               {/* Problem Name & Link */}
-              <Typography
-                variant="h5"
-                component="h2"
-                sx={{ fontWeight: 600, color: '#fff', mb: 1 }}
-              >
-                {todayProblem.name}
+              <Typography variant="h5" component="h2" sx={{ fontWeight: 600, color: '#fff', mb: 1 }}>
+                {problem.name}
               </Typography>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-                {isLeetCode(todayProblem) ? (
+                {isLeetCode(problem) ? (
                   <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-                    LeetCode &bull; {todayProblem.index || 'Medium'}
+                    LeetCode &bull; {problem.index || 'Medium'}
                   </Typography>
                 ) : (
                   <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-                    Contest {todayProblem.contestId} &bull; Problem {todayProblem.index}
+                    Contest {problem.contestId} &bull; Problem {problem.index}
                   </Typography>
                 )}
 
-                {/* Solve link */}
-                {isLeetCode(todayProblem) ? (
-                  getProblemUrl(todayProblem) && (
-                    <a
-                      href={getProblemUrl(todayProblem)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 transition-colors text-sm"
-                    >
+                {isLeetCode(problem) ? (
+                  getProblemUrl(problem) && (
+                    <a href={getProblemUrl(problem)} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 transition-colors text-sm">
                       Solve on LeetCode <OpenInNew sx={{ fontSize: 14 }} />
                     </a>
                   )
                 ) : (
-                  <a
-                    href={getProblemUrl(todayProblem)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors text-sm"
-                  >
+                  <a href={getProblemUrl(problem)} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors text-sm">
                     Solve on Codeforces <OpenInNew sx={{ fontSize: 14 }} />
                   </a>
                 )}
               </Box>
 
-              {/* Action Button: Check Solved or Mark as Completed */}
+              {/* Action Button */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                {isLeetCode(todayProblem) ? (
+                {isLeetCode(problem) ? (
                   <motion.button
                     onClick={handleSelfComplete}
                     disabled={checking || solvedStatus === true}
@@ -295,23 +292,11 @@ function DailyProblemPage() {
                     whileTap={{ scale: checking || solvedStatus === true ? 1 : 0.98 }}
                     className="py-2.5 px-5 rounded-lg font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
-                      background: solvedStatus === true
-                        ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-                        : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                      boxShadow: solvedStatus === true
-                        ? '0 4px 14px rgba(34, 197, 94, 0.4)'
-                        : '0 4px 14px rgba(245, 158, 11, 0.4)',
-                      border: 'none',
-                      cursor: checking || solvedStatus === true ? 'not-allowed' : 'pointer',
+                      background: solvedStatus === true ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      border: 'none', cursor: checking || solvedStatus === true ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    {checking ? (
-                      <CircularProgress size={20} sx={{ color: '#fff' }} />
-                    ) : solvedStatus === true ? (
-                      'Completed ✓'
-                    ) : (
-                      'Mark as completed'
-                    )}
+                    {checking ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : solvedStatus === true ? 'Completed ✓' : 'Mark as completed'}
                   </motion.button>
                 ) : (
                   <motion.button
@@ -322,54 +307,31 @@ function DailyProblemPage() {
                     className="py-2.5 px-5 rounded-lg font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                       background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-                      boxShadow: '0 4px 14px rgba(25, 118, 210, 0.4)',
-                      border: 'none',
-                      cursor: checking ? 'not-allowed' : 'pointer',
+                      border: 'none', cursor: checking ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    {checking ? (
-                      <CircularProgress size={20} sx={{ color: '#fff' }} />
-                    ) : (
-                      'Check if I solved it'
-                    )}
+                    {checking ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Check if I solved it'}
                   </motion.button>
                 )}
 
-                {/* Solved Status Indicator */}
                 {solvedStatus === true && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-1"
-                  >
+                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-1">
                     <CheckCircle sx={{ color: '#4caf50', fontSize: 22 }} />
-                    <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 600 }}>
-                      Solved! Great work!
-                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 600 }}>Solved!</Typography>
                   </motion.div>
                 )}
-
                 {solvedStatus === false && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-1"
-                  >
+                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-1">
                     <RadioButtonUnchecked sx={{ color: '#ff9800', fontSize: 22 }} />
-                    <Typography variant="body2" sx={{ color: '#ff9800', fontWeight: 600 }}>
-                      Not solved yet — keep going!
-                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#ff9800', fontWeight: 600 }}>Not solved yet — keep going!</Typography>
                   </motion.div>
                 )}
               </Box>
 
-              {checkError && (
-                <Alert severity="error" sx={{ mt: 2 }}>
-                  {checkError}
-                </Alert>
-              )}
+              {checkError && <Alert severity="error" sx={{ mt: 2 }}>{checkError}</Alert>}
             </Box>
           </motion.div>
+          ))
         ) : (
           <Alert severity="info" sx={{ mb: 4 }}>
             No daily problem has been set for today.

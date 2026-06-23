@@ -135,11 +135,18 @@ const getLeaderboard = async (period = 'all-time') => {
 
     scored.push({
       memberId: member._id.toString(),
+      codeforcesHandle: member.codeforcesHandle,
       handle: member.codeforcesHandle,
       leetcodeUsername: member.leetcodeUsername || null,
+      codeforcesRating: member.codeforcesRating || 0,
+      codeforcesRank: member.codeforcesRank || 'Unrated',
+      leetcodeStats: member.leetcodeStats || { easy: 0, medium: 0, hard: 0 },
       score,
+      activityScore: score,
       problemsSolved: stats.problemsSolved,
+      totalProblems: stats.problemsSolved,
       streak: stats.streak,
+      currentStreak: stats.streak,
       lastSyncedAt: member.lastSyncedAt || new Date(0),
     });
   }
@@ -154,11 +161,18 @@ const getLeaderboard = async (period = 'all-time') => {
   return scored.map((entry, index) => ({
     rank: index + 1,
     memberId: entry.memberId,
+    codeforcesHandle: entry.codeforcesHandle,
     handle: entry.handle,
     leetcodeUsername: entry.leetcodeUsername,
+    codeforcesRating: entry.codeforcesRating,
+    codeforcesRank: entry.codeforcesRank,
+    leetcodeStats: entry.leetcodeStats,
     score: entry.score,
+    activityScore: entry.activityScore,
     problemsSolved: entry.problemsSolved,
+    totalProblems: entry.totalProblems,
     streak: entry.streak,
+    currentStreak: entry.currentStreak,
   }));
 };
 

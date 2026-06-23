@@ -154,7 +154,19 @@ function DashboardPage() {
       requests.push(api.get('/leaderboard').catch(() => null));
       const [cfRes, lcRes, lbRes] = await Promise.all(requests);
       if (cfRes?.data) setCfProfile(cfRes.data);
-      if (lcRes?.data) setLcStats(lcRes.data);
+      if (lcRes?.data) {
+        // Normalize the LC sync response structure
+        const raw = lcRes.data.data || lcRes.data;
+        setLcStats({
+          easy: raw.stats?.easy ?? raw.easy ?? 0,
+          medium: raw.stats?.medium ?? raw.medium ?? 0,
+          hard: raw.stats?.hard ?? raw.hard ?? 0,
+          currentStreak: raw.streak ?? raw.currentStreak ?? 0,
+          recentSubmissions: raw.recentSubmissions || [],
+          tags: raw.tags || {},
+          totalAvailable: raw.stats?.total ?? raw.totalAvailable ?? 3972,
+        });
+      }
       if (lbRes?.data) {
         const members = lbRes.data.leaderboard || lbRes.data;
         const myEntry = Array.isArray(members)

@@ -19,6 +19,7 @@ import {
   Warning as WarningIcon,
 } from '@mui/icons-material';
 import Boilerplate from '@/components/Boilerplate';
+import { useAuth } from '@/context/AuthContext';
 import api from '@/utils/api';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -83,6 +84,7 @@ const platformStyles = {
  * Includes push notification subscription and staleness warning.
  */
 function ContestsPage() {
+  const { isAdmin } = useAuth();
   const [contests, setContests] = useState({ codeforces: [], leetcode: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -376,7 +378,7 @@ function ContestsPage() {
           {subscribed ? 'Subscribed' : 'Subscribe to notifications'}
         </Button>
 
-        {subscribed && (
+        {subscribed && isAdmin() && (
           <Button
             variant="outlined"
             size="small"

@@ -71,13 +71,13 @@ const setProblem = async (req, res, next) => {
  */
 const getToday = async (req, res, next) => {
   try {
-    const problem = await dailyProblemService.getTodayProblem();
+    const problems = await dailyProblemService.getTodayProblem();
 
-    if (!problem) {
-      return res.status(200).json(null);
+    if (!problems || problems.length === 0) {
+      return res.status(200).json([]);
     }
 
-    res.status(200).json(problem);
+    res.status(200).json(problems);
   } catch (err) {
     next(err);
   }

@@ -11,12 +11,19 @@ const PERIODS = [
   { label: 'All-Time', value: 'all-time' },
 ];
 
+const SORT_MODES = [
+  { label: 'Activity Score', value: 'score' },
+  { label: 'CF Rating', value: 'cfRating' },
+  { label: 'LC Solved', value: 'lcSolved' },
+];
+
 function LeaderboardPage() {
   const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activePeriod, setActivePeriod] = useState('all-time');
+  const [sortMode, setSortMode] = useState('score');
 
   const fetchLeaderboard = useCallback(async (period) => {
     setLoading(true);
@@ -44,9 +51,37 @@ function LeaderboardPage() {
     fetchLeaderboard(activePeriod);
   }, [activePeriod, fetchLeaderboard]);
 
-  const currentUser = members.find(
-    (m) => m.codeforcesHandle === user?.codeforcesHandle
+  // Sort members based on active sort mode
+  const sortedMembers = [...members].sort((a, b) => {
+    if (sortMode === 'cfRating') {
+      return (b.codeforcesRating || 0) - (a.codeforcesRating || 0);
+    }
+    if (sortMode === 'lcSolved') {
+      const getLC = (m) => (m.leetcodeStats?.easy || 0) + (m.leetcodeStats?.medium || 0) + (m.leetcodeStats?.hard || 0);
+      return getLC(b) - getLC(a);
+    }
+    // Default: activity score (handle both field names from API)
+    return (b.activityScore ?? b.score ?? 0) - (a.activityScore ?? a.score ?? 0);
+  }).map((m, idx) => ({ ...m, rank: idx + 1 }));
+
+  const currentUser = sortedMembers.find(
+    (m) => (m.codeforcesHandle || m.handle) === user?.codeforcesHandle
   );
+
+  // Helper to get display value based on sort mode
+  const getScoreValue = (member) => {
+    if (sortMode === 'cfRating') return member.codeforcesRating || 0;
+    if (sortMode === 'lcSolved') {
+      return (member.leetcodeStats?.easy || 0) + (member.leetcodeStats?.medium || 0) + (member.leetcodeStats?.hard || 0);
+    }
+    return member.activityScore ?? member.score ?? 0;
+  };
+
+  const getScoreLabel = () => {
+    if (sortMode === 'cfRating') return 'CF Rating';
+    if (sortMode === 'lcSolved') return 'LC Solved';
+    return 'Score';
+  };
 
   const getRankIcon = (rank) => {
     if (rank === 1) return <Trophy className="w-5 h-5" style={{ color: '#ffd60a' }} />;
@@ -79,7 +114,7 @@ function LeaderboardPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="flex gap-2 mb-6"
+          className="flex flex-wrap gap-2 mb-4"
         >
           {PERIODS.map((p) => (
             <button
@@ -92,6 +127,29 @@ function LeaderboardPage() {
               }`}
             >
               {p.label}
+            </button>
+          ))}
+        </motion.div>
+
+        {/* Sort Mode Toggles */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="flex flex-wrap gap-2 mb-6"
+        >
+          <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider self-center mr-2">Sort by:</span>
+          {SORT_MODES.map((s) => (
+            <button
+              key={s.value}
+              onClick={() => setSortMode(s.value)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                sortMode === s.value
+                  ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
+                  : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/50 hover:text-white/80'
+              }`}
+            >
+              {s.label}
             </button>
           ))}
         </motion.div>
@@ -120,7 +178,7 @@ function LeaderboardPage() {
                     </div>
                     <div>
                       <p className="text-white font-semibold">{currentUser.codeforcesHandle}</p>
-                      <p className="text-xs text-white/40">Rank #{currentUser.rank} of {members.length}</p>
+                      <p className="text-xs text-white/40">Rank #{currentUser.rank} of {sortedMembers.length}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-6">
@@ -141,9 +199,9 @@ function LeaderboardPage() {
                     <div className="text-center">
                       <div className="flex items-center gap-1 text-white/50 mb-0.5">
                         <Activity className="w-3.5 h-3.5" />
-                        <span className="text-[11px] uppercase">Score</span>
+                        <span className="text-[11px] uppercase">{getScoreLabel()}</span>
                       </div>
-                      <p className="text-lime-400 font-bold tabular-nums">{currentUser.activityScore ?? 0}</p>
+                      <p className="text-lime-400 font-bold tabular-nums">{getScoreValue(currentUser)}</p>
                     </div>
                   </div>
                 </div>
@@ -193,7 +251,7 @@ function LeaderboardPage() {
         )}
 
         {/* Empty State */}
-        {!loading && !error && members.length === 0 && (
+        {!loading && !error && sortedMembers.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -207,7 +265,7 @@ function LeaderboardPage() {
         )}
 
         {/* Leaderboard Table */}
-        {!loading && !error && members.length > 0 && (
+        {!loading && !error && sortedMembers.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -229,19 +287,19 @@ function LeaderboardPage() {
                 <span className="text-xs font-medium text-white/50 uppercase">Member</span>
                 <span className="text-xs font-medium text-white/50 uppercase text-center">Problems</span>
                 <span className="text-xs font-medium text-white/50 uppercase text-center">Streak</span>
-                <span className="text-xs font-medium text-white/50 uppercase text-right">Score</span>
+                <span className="text-xs font-medium text-white/50 uppercase text-right">{getScoreLabel()}</span>
               </div>
 
               {/* Table Body */}
               <AnimatePresence mode="popLayout">
-                {members.map((member, index) => {
+                {sortedMembers.map((member, index) => {
                   const rank = member.rank || index + 1;
-                  const isCurrentUser = member.codeforcesHandle === user?.codeforcesHandle;
+                  const isCurrentUser = (member.codeforcesHandle || member.handle) === user?.codeforcesHandle;
 
                   return (
                     <motion.div
-                      key={member.codeforcesHandle || member._id || index}
-                      layoutId={member.codeforcesHandle || member._id || `member-${index}`}
+                      key={(member.codeforcesHandle || member.handle) || member._id || index}
+                      layoutId={(member.codeforcesHandle || member.handle) || member._id || `member-${index}`}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
@@ -262,7 +320,7 @@ function LeaderboardPage() {
                       {/* Member */}
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-white truncate">
-                          {member.codeforcesHandle}
+                          {(member.codeforcesHandle || member.handle)}
                           {isCurrentUser && (
                             <span className="ml-2 text-[10px] font-bold text-orange-400 uppercase">
                               You
@@ -291,7 +349,7 @@ function LeaderboardPage() {
 
                       {/* Score */}
                       <p className="text-sm text-lime-400 font-bold tabular-nums text-right">
-                        {member.activityScore ?? 0}
+                        {getScoreValue(member)}
                       </p>
                     </motion.div>
                   );
@@ -302,14 +360,14 @@ function LeaderboardPage() {
             {/* Mobile Card Layout */}
             <div className="md:hidden px-3 pb-3">
               <AnimatePresence mode="popLayout">
-                {members.map((member, index) => {
+                {sortedMembers.map((member, index) => {
                   const rank = member.rank || index + 1;
-                  const isCurrentUser = member.codeforcesHandle === user?.codeforcesHandle;
+                  const isCurrentUser = (member.codeforcesHandle || member.handle) === user?.codeforcesHandle;
 
                   return (
                     <motion.div
-                      key={member.codeforcesHandle || member._id || `mobile-${index}`}
-                      layoutId={`mobile-${member.codeforcesHandle || member._id || index}`}
+                      key={(member.codeforcesHandle || member.handle) || member._id || `mobile-${index}`}
+                      layoutId={`mobile-${(member.codeforcesHandle || member.handle) || member._id || index}`}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
@@ -329,7 +387,7 @@ function LeaderboardPage() {
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-white truncate">
-                              {member.codeforcesHandle}
+                              {(member.codeforcesHandle || member.handle)}
                               {isCurrentUser && (
                                 <span className="ml-1.5 text-[10px] font-bold text-orange-400 uppercase">
                                   You
@@ -345,9 +403,9 @@ function LeaderboardPage() {
                         </div>
                         <div className="text-right">
                           <p className="text-lime-400 font-bold text-sm tabular-nums">
-                            {member.activityScore ?? 0}
+                            {getScoreValue(member)}
                           </p>
-                          <p className="text-[10px] text-white/30 uppercase">Score</p>
+                          <p className="text-[10px] text-white/30 uppercase">{getScoreLabel()}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4 pt-2 border-t border-white/5">

@@ -1,13 +1,29 @@
 const leetcodeService = require('../services/leetcodeService');
+const Member = require('../Models/Member');
 
 /**
  * Full profile sync handler.
  * GET /api/leetcode/sync/:username
+ * Also persists the stats to the Member document for leaderboard use.
  */
 const sync = async (req, res, next) => {
   try {
     const { username } = req.params;
     const result = await leetcodeService.syncProfile(username);
+
+    // Persist stats to the Member model so leaderboard can use them
+    if (req.user && req.user.memberId && result.stats) {
+      await Member.findByIdAndUpdate(req.user.memberId, {
+        leetcodeStats: {
+          easy: result.stats.easy || 0,
+          medium: result.stats.medium || 0,
+          hard: result.stats.hard || 0,
+          tags: result.tags || {},
+        },
+        currentStreak: result.streak || 0,
+        lastSyncedAt: new Date(),
+      });
+    }
 
     res.json({
       success: true,

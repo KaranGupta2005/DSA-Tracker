@@ -57,7 +57,7 @@ const createRateLimit = (windowMs = 15 * 60 * 1000, maxRequests = 100) => {
 };
 
 // Pre-configured rate limiters
-const generalRateLimit = createRateLimit(15 * 60 * 1000, 100); // 100 requests per 15 min
-const aiRateLimit = createRateLimit(60 * 1000, 5); // 5 requests per 1 min (stricter for AI endpoints)
+const generalRateLimit = createRateLimit(15 * 60 * 1000, 500); // 500 requests per 15 min
+const aiRateLimit = createRateLimit(60 * 1000, 10); // 10 requests per 1 min (stricter for AI endpoints)
 
 module.exports = { createRateLimit, generalRateLimit, aiRateLimit };

@@ -109,7 +109,16 @@ function ProfilePage() {
         api.get(`/leetcode/stats/${user.leetcodeUsername}`).catch(() => null),
         api.get(`/leetcode/submissions/${user.leetcodeUsername}`).catch(() => null),
       ]);
-      if (statsRes?.data) setLcData(statsRes.data);
+      if (statsRes?.data) {
+        const raw = statsRes.data.data || statsRes.data;
+        setLcData({
+          easy: raw.stats?.easy ?? raw.easy ?? 0,
+          medium: raw.stats?.medium ?? raw.medium ?? 0,
+          hard: raw.stats?.hard ?? raw.hard ?? 0,
+          tags: raw.tags || {},
+          currentStreak: raw.streak ?? raw.currentStreak ?? 0,
+        });
+      }
       if (subsRes?.data) {
         const subs = Array.isArray(subsRes.data)
           ? subsRes.data
@@ -129,8 +138,15 @@ function ProfilePage() {
     try {
       const res = await api.get(`/leetcode/sync/${user.leetcodeUsername}`);
       if (res?.data) {
-        setLcData(res.data);
-        const subs = res.data.recentSubmissions || [];
+        const raw = res.data.data || res.data;
+        setLcData({
+          easy: raw.stats?.easy ?? raw.easy ?? 0,
+          medium: raw.stats?.medium ?? raw.medium ?? 0,
+          hard: raw.stats?.hard ?? raw.hard ?? 0,
+          tags: raw.tags || {},
+          currentStreak: raw.streak ?? raw.currentStreak ?? 0,
+        });
+        const subs = raw.recentSubmissions || [];
         setLcSubmissions(subs.slice(0, 15));
       }
     } catch {
