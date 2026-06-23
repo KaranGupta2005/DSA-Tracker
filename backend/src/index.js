@@ -9,6 +9,9 @@ const { errorHandler } = require('./middleware/errorHandler');
 const authRoutes = require('./routes/authRoutes');
 const codeforcesRoutes = require('./routes/codeforcesRoutes');
 const leetcodeRoutes = require('./routes/leetcodeRoutes');
+const leaderboardRoutes = require('./routes/leaderboardRoutes');
+const contestRoutes = require('./routes/contestRoutes');
+const dailyRoutes = require('./routes/dailyRoutes');
 
 const app = express();
 
@@ -28,6 +31,9 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/codeforces', codeforcesRoutes);
 app.use('/api/leetcode', leetcodeRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/contests', contestRoutes);
+app.use('/api/daily', dailyRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);
