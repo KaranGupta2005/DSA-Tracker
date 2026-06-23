@@ -72,4 +72,28 @@ const getHistory = async (req, res, next) => {
   }
 };
 
-module.exports = { setProblem, getToday, getHistory };
+/**
+ * GET /api/daily/check/:handle
+ * Checks if the member has solved today's daily problem. Member access.
+ */
+const checkCompletion = async (req, res, next) => {
+  try {
+    const { handle } = req.params;
+
+    if (!handle || handle.trim().length === 0) {
+      throw createAppError(
+        'VALIDATION_ERROR',
+        'Codeforces handle is required.',
+        { fields: ['handle'] }
+      );
+    }
+
+    const result = await dailyProblemService.checkCompletion(handle.trim(), req.user.memberId);
+
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { setProblem, getToday, getHistory, checkCompletion };

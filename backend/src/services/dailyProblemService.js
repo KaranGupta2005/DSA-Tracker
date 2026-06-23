@@ -113,4 +113,42 @@ const getHistory = async () => {
   return DailyProblem.find().sort({ date: -1 }).limit(7);
 };
 
-module.exports = { setDailyProblem, getTodayProblem, getHistory, fetchProblemFromCF };
+/**
+ * Checks if a member has completed today's daily problem by querying the Codeforces API.
+ * If solved, records the completion in the DailyProblem.completions array (avoiding duplicates).
+ * @param {string} handle - The Codeforces handle to check
+ * @param {string} memberId - The member's ObjectId
+ * @returns {Promise<{solved: boolean, problem: Object, alreadyCompleted: boolean}>}
+ */
+const checkCompletion = async (handle, memberId) => {
+  const problem = await getTodayProblem();
+
+  if (!problem) {
+    throw createAppError(
+      'NOT_FOUND',
+      'No daily problem has been set for today.'
+    );
+  }
+
+  // Check if member already completed this problem
+  const alreadyCompleted = problem.completions.some(
+    (c) => c.memberId.toString() === memberId.toString()
+  );
+
+  if (alreadyCompleted) {
+    return { solved: true, problem, alreadyCompleted: true };
+  }
+
+  const codeforcesService = require('./codeforcesService');
+  const { solved } = await codeforcesService.checkProblemSolved(handle, problem.contestId, problem.index);
+
+  if (solved) {
+    await DailyProblem.findByIdAndUpdate(problem._id, {
+      $push: { completions: { memberId, completedAt: new Date() } },
+    });
+  }
+
+  return { solved, problem, alreadyCompleted: false };
+};
+
+module.exports = { setDailyProblem, getTodayProblem, getHistory, fetchProblemFromCF, checkCompletion };
