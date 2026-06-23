@@ -166,8 +166,28 @@ function ContestsPage() {
         return;
       }
 
-      // Get service worker registration
-      const registration = await navigator.serviceWorker.ready;
+      // Get service worker registration with timeout
+      let registration;
+      try {
+        registration = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+        ]);
+      } catch (e) {
+        // SW not ready — try registering it first
+        try {
+          registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          registration = await navigator.serviceWorker.ready;
+        } catch (regErr) {
+          setSnackbar({
+            open: true,
+            message: 'Service worker not available. Push notifications require HTTPS.',
+            severity: 'error',
+          });
+          return;
+        }
+      }
 
       // Subscribe to push notifications with VAPID key
       const subscription = await registration.pushManager.subscribe({
@@ -188,7 +208,7 @@ function ContestsPage() {
       console.error('Push subscription error:', err);
       setSnackbar({
         open: true,
-        message: 'Failed to subscribe to notifications. Please try again.',
+        message: 'Failed to subscribe. Make sure notifications are allowed and try again.',
         severity: 'error',
       });
     } finally {
