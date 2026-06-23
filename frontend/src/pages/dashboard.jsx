@@ -265,16 +265,15 @@ function DashboardPage() {
   const cfRating = cfProfile?.rating ?? user?.codeforcesRating ?? null;
   const cfRank = cfProfile?.rank ?? user?.codeforcesRank ?? 'Unrated';
   const cfAvatar = cfProfile?.avatar ?? null;
-  const cfContestsAttended = cfProfile?.contestsAttended ?? cfProfile?.contests ?? null;
-  const cfGlobalRank = cfProfile?.globalRanking ?? cfProfile?.globalRank ?? null;
-  const cfTotalUsers = cfProfile?.totalUsers ?? null;
+  const cfContestsAttended = cfProfile?.contestsAttended ?? null;
+  const cfMaxRating = cfProfile?.maxRating ?? null;
   const streak = lcStats?.currentStreak ?? 0;
   const activityScore = leaderboardData?.activityScore ?? 0;
   const lcEasy = lcStats?.easy ?? 0;
   const lcMedium = lcStats?.medium ?? 0;
   const lcHard = lcStats?.hard ?? 0;
   const lcTotal = lcEasy + lcMedium + lcHard;
-  const lcTotalAvailable = lcStats?.totalAvailable ?? 3972;
+  const lcTotalAvailable = 3400; // Approximate total LC problems
   const recentSubmissions = lcStats?.recentSubmissions || [];
 
   return (
@@ -391,10 +390,9 @@ function DashboardPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Global Ranking</p>
+                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Max Rating</p>
                     <p className="text-lg font-bold text-white/80 tabular-nums">
-                      {cfGlobalRank ? cfGlobalRank.toLocaleString() : '—'}
-                      {cfTotalUsers && <span className="text-white/30">/{cfTotalUsers.toLocaleString()}</span>}
+                      {cfMaxRating ? cfMaxRating.toLocaleString() : '—'}
                     </p>
                   </div>
                   <div>

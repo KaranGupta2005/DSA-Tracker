@@ -55,7 +55,7 @@ const verifyHandle = async (handle) => {
  * Fetches the Codeforces profile for a given handle (rating, rank, avatar).
  * Returns "Unrated" rank and null rating if the user is unrated.
  * @param {string} handle - The Codeforces handle
- * @returns {Promise<{handle: string, rating: number|null, rank: string, avatar: string}>}
+ * @returns {Promise<{handle: string, rating: number|null, rank: string, avatar: string, maxRating: number|null, contestsAttended: number}>}
  */
 const getProfile = async (handle) => {
   let response;
@@ -94,11 +94,27 @@ const getProfile = async (handle) => {
 
   const user = data.result[0];
 
+  // Also fetch contest count from user.rating
+  let contestsAttended = 0;
+  try {
+    const ratingRes = await fetch(`https://codeforces.com/api/user.rating?handle=${encodeURIComponent(handle)}`);
+    const ratingData = await ratingRes.json();
+    if (ratingData.status === 'OK') {
+      contestsAttended = ratingData.result.length;
+    }
+  } catch (e) {
+    // Non-critical — just show 0
+  }
+
   return {
     handle: user.handle,
     rating: user.rating || null,
     rank: user.rank || 'Unrated',
     avatar: user.avatar || '',
+    maxRating: user.maxRating || null,
+    maxRank: user.maxRank || 'Unrated',
+    contestsAttended,
+    contribution: user.contribution || 0,
   };
 };
 

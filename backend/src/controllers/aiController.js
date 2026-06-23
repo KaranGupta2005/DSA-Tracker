@@ -10,10 +10,14 @@ const { createAppError } = require('../middleware/errorHandler');
  */
 const getReport = async (req, res, next) => {
   try {
-    const { memberId } = req.user;
+    const { memberId, role } = req.user;
 
     if (!memberId) {
       throw createAppError('AUTH_REQUIRED', 'Authentication is required.');
+    }
+
+    if (role === 'admin') {
+      throw createAppError('FORBIDDEN', 'AI reports are only available for members. Please login as a member.');
     }
 
     const member = await Member.findById(memberId);
