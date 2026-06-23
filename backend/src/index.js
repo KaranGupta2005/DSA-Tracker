@@ -18,9 +18,9 @@ const sessionPrepRoutes = require('./routes/sessionPrepRoutes');
 
 const app = express();
 
-// CORS configuration - allow frontend origin
+// CORS configuration - allow all origins
 app.use(cors({
-  origin: config.frontendOrigin,
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
