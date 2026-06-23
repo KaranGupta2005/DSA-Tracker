@@ -269,4 +269,68 @@ const linkLeetcode = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, adminLogin, createAdmin, linkLeetcode };
+/**
+ * Approve a pending member (admin only).
+ * PATCH /api/auth/admin/approve/:id
+ */
+const approveMember = async (req, res, next) => {
+  try {
+    const member = await Member.findById(req.params.id);
+
+    if (!member) {
+      throw createAppError('NOT_FOUND', 'Member not found');
+    }
+
+    if (member.status !== 'pending') {
+      throw createAppError(
+        'MEMBER_NOT_PENDING',
+        'Member is not in a pending state'
+      );
+    }
+
+    member.status = 'active';
+    await member.save();
+
+    res.status(200).json({
+      message: 'Member approved successfully',
+      member: {
+        id: member._id,
+        codeforcesHandle: member.codeforcesHandle,
+        status: member.status,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Reject a pending member and remove from system (admin only).
+ * DELETE /api/auth/admin/reject/:id
+ */
+const rejectMember = async (req, res, next) => {
+  try {
+    const member = await Member.findById(req.params.id);
+
+    if (!member) {
+      throw createAppError('NOT_FOUND', 'Member not found');
+    }
+
+    if (member.status !== 'pending') {
+      throw createAppError(
+        'MEMBER_NOT_PENDING',
+        'Member is not in a pending state'
+      );
+    }
+
+    await Member.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      message: 'Member rejected and removed from system',
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { register, login, adminLogin, createAdmin, linkLeetcode, approveMember, rejectMember };
