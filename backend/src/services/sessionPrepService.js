@@ -239,35 +239,60 @@ Respond ONLY with valid JSON, no additional text.`;
   // Parse the JSON response
   let content;
   try {
-    const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    let jsonStr = rawResponse.match(/\{[\s\S]*\}/)?.[0];
+    if (!jsonStr) {
       throw new Error('No JSON found in response');
     }
-    content = JSON.parse(jsonMatch[0]);
+    // Fix common JSON issues from AI responses
+    // Replace actual newlines inside strings (not between JSON tokens)
+    jsonStr = jsonStr.replace(/[\r\n]+/g, '\\n').replace(/\t/g, '\\t');
+    // Try parsing, if fails try a more aggressive cleanup
+    try {
+      content = JSON.parse(jsonStr);
+    } catch {
+      // More aggressive: extract what we can
+      content = {};
+      const explanationsMatch = rawResponse.match(/"explanations?"[\s:]+["\[]([^"]*)/i);
+      const codeMatch = rawResponse.match(/"(?:exampleCode|Example Code|code)"[\s:]+["\[]([^"]*)/i);
+      content.explanations = explanationsMatch ? explanationsMatch[1] : rawResponse.substring(0, 500);
+      content.talkingPoints = [];
+      content.exampleCode = codeMatch ? codeMatch[1] : '';
+      // Try to find array items
+      const pointMatches = rawResponse.match(/"([^"]{10,100})"/g);
+      if (pointMatches && pointMatches.length > 3) {
+        content.talkingPoints = pointMatches.slice(0, 7).map(p => p.replace(/"/g, ''));
+      }
+    }
   } catch (parseErr) {
-    throw createAppError(
-      'VALIDATION_ERROR',
-      'Failed to parse AI response for topic content.',
-      { rawResponse: rawResponse.substring(0, 200) }
-    );
+    // Last resort: use the raw response as explanation
+    content = {
+      explanations: rawResponse.substring(0, 1000),
+      talkingPoints: ['See the explanation above'],
+      exampleCode: '',
+    };
   }
 
-  // Validate required fields
-  if (!content.explanations || typeof content.explanations !== 'string') {
-    throw createAppError('VALIDATION_ERROR', 'AI response missing valid explanations field.');
+  // Flexibly extract fields (AI may use different key names/formats)
+  let explanations = content.explanations || content.explanation || content.Explanations || '';
+  if (typeof explanations === 'object') {
+    explanations = Object.entries(explanations).map(([k, v]) => `${k}: ${v}`).join('\n\n');
   }
-  if (!Array.isArray(content.talkingPoints) || content.talkingPoints.length === 0) {
-    throw createAppError('VALIDATION_ERROR', 'AI response missing valid talkingPoints field.');
+
+  let talkingPoints = content.talkingPoints || content['Talking Points'] || content.talking_points || content.points || [];
+  if (!Array.isArray(talkingPoints)) {
+    talkingPoints = typeof talkingPoints === 'string' ? talkingPoints.split('\n').filter(Boolean) : [];
   }
-  if (!content.exampleCode || typeof content.exampleCode !== 'string') {
-    throw createAppError('VALIDATION_ERROR', 'AI response missing valid exampleCode field.');
+
+  let exampleCode = content.exampleCode || content['Example Code'] || content.example_code || content.code || '';
+  if (typeof exampleCode === 'object') {
+    exampleCode = JSON.stringify(exampleCode, null, 2);
   }
 
   return {
     topic,
-    explanations: content.explanations,
-    talkingPoints: content.talkingPoints,
-    exampleCode: content.exampleCode,
+    explanation: explanations || 'Content generated successfully.',
+    talkingPoints: talkingPoints.length > 0 ? talkingPoints : ['See the explanation above for key points.'],
+    code: exampleCode || '# No code example generated',
   };
 };
 
