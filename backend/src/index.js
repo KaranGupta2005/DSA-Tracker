@@ -35,8 +35,22 @@ app.use('/api', generalRateLimit);
 
 // Health check route
 app.get('/', (req, res) => {
-  res.json({ message: 'IEEE DTU DSA Tracker API is running' });
+  res.json({ message: 'IEEE DTU DSA Tracker API is running', uptime: process.uptime() });
 });
+
+// Self-ping to keep Render free tier alive (pings every 14 minutes)
+const SELF_PING_URL = process.env.RENDER_EXTERNAL_URL || process.env.SELF_PING_URL;
+if (SELF_PING_URL) {
+  const fetch = require('node-fetch');
+  setInterval(async () => {
+    try {
+      await fetch(SELF_PING_URL);
+      console.log(`[Keep-alive] Pinged ${SELF_PING_URL}`);
+    } catch (err) {
+      console.log('[Keep-alive] Ping failed:', err.message);
+    }
+  }, 14 * 60 * 1000); // every 14 minutes
+}
 
 // Routes
 app.use('/api/auth', authRoutes);
