@@ -4,11 +4,35 @@ const { createAppError } = require('../middleware/errorHandler');
 /**
  * POST /api/daily/set
  * Sets today's daily problem. Admin only.
+ * Supports both Codeforces (contestId + index) and LeetCode (name + url + difficulty).
  */
 const setProblem = async (req, res, next) => {
   try {
-    const { contestId, index } = req.body;
+    const { contestId, index, platform, name, url, difficulty } = req.body;
 
+    // If platform is 'leetcode', allow setting a LC problem directly
+    if (platform === 'leetcode') {
+      if (!name || !url) {
+        throw createAppError(
+          'VALIDATION_ERROR',
+          'Problem name and URL are required for LeetCode problems.',
+          { fields: ['name', 'url'] }
+        );
+      }
+
+      const problem = await dailyProblemService.setDailyProblemDirect({
+        name: name.trim(),
+        url: url.trim(),
+        platform: 'leetcode',
+        rating: difficulty === 'Hard' ? 2000 : difficulty === 'Medium' ? 1400 : 800,
+        contestId: 0,
+        index: difficulty || 'Medium',
+      });
+
+      return res.status(200).json(problem);
+    }
+
+    // Default: Codeforces problem
     if (!contestId || !index) {
       throw createAppError(
         'VALIDATION_ERROR',

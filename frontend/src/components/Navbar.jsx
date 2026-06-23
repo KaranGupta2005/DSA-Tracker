@@ -6,44 +6,35 @@ import { useAuth } from '@/context/AuthContext';
 
 /**
  * Navbar component — sticky, glassmorphism, auth-aware.
- * Shows different links based on login state and role.
+ * Simplified: only essential links shown here.
+ * Other pages are accessible via the Sidebar on inner pages.
  */
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
   const active = router.pathname;
-  const { user, logout, isAuthenticated, isAdmin } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
 
   const handleLogout = () => {
     logout();
     router.push('/');
   };
 
-  // Build nav links based on auth state
+  // Simplified nav links based on auth state
   const getNavLinks = () => {
     if (isAuthenticated()) {
-      const links = [
+      return [
         { name: 'Home', href: '/' },
         { name: 'Dashboard', href: '/dashboard' },
         { name: 'Leaderboard', href: '/leaderboard' },
-        { name: 'Contests', href: '/contests' },
-        { name: 'Daily', href: '/daily' },
+        { name: 'Logout', href: '#', onClick: handleLogout },
       ];
-
-      if (isAdmin()) {
-        links.push({ name: 'Admin', href: '/admin' });
-      }
-
-      links.push({ name: 'Logout', href: '#', onClick: handleLogout });
-
-      return links;
     }
 
     // Not logged in
     return [
       { name: 'Home', href: '/' },
       { name: 'Leaderboard', href: '/leaderboard' },
-      { name: 'Contests', href: '/contests' },
       { name: 'Login', href: '/login' },
     ];
   };

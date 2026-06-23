@@ -1,22 +1,40 @@
 import Navbar from './Navbar';
+import Sidebar from './Sidebar';
 import { useRouter } from 'next/router';
+import { useAuth } from '@/context/AuthContext';
 
 /**
- * Boilerplate HOC — replicates Model_NextJs-project layout/Boilerplate.
- * Wraps pages with Navbar. Does not show Navbar on the landing page (/)
- * since the landing page renders its own Navbar inline.
- * Adds consistent dark background and padding for inner pages.
+ * Boilerplate HOC — layout wrapper for pages.
+ * - Landing page (/): no wrapper (renders its own Navbar)
+ * - Authenticated pages: Sidebar (fixed left) + content with md:pl-[90px]
+ * - Unauthenticated pages: Navbar + content (no sidebar)
  */
 export default function Boilerplate(WrappedComponent) {
   function LayoutWrapper(props) {
     const router = useRouter();
+    const { isAuthenticated } = useAuth();
     const isHome = router.pathname === '/';
 
-    // Landing page handles its own Navbar, so skip wrapping
+    // Landing page handles its own layout
     if (isHome) {
       return <WrappedComponent {...props} />;
     }
 
+    // Authenticated pages get sidebar layout
+    if (isAuthenticated()) {
+      return (
+        <div className="min-h-screen bg-[#09090b] text-white font-sans">
+          <Sidebar />
+          <main className="min-h-screen md:pl-[64px] transition-all duration-300">
+            <div className="w-full px-6 py-8">
+              <WrappedComponent {...props} />
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    // Unauthenticated pages get navbar
     return (
       <div className="min-h-screen bg-[#09090b] text-white">
         <Navbar />

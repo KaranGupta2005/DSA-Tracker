@@ -7,7 +7,14 @@ const contestService = require('../services/contestService');
 const getUpcoming = async (req, res, next) => {
   try {
     const result = await contestService.getUpcomingContests();
-    res.json(result);
+    // Flatten the response so frontend can access data.codeforces and data.leetcode directly
+    res.json({
+      codeforces: result.contests.codeforces,
+      leetcode: result.contests.leetcode,
+      lastFetchedAt: result.lastFetchedAt,
+      isStale: result.stale,
+      staleWarning: result.staleWarning,
+    });
   } catch (err) {
     next(err);
   }

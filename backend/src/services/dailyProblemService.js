@@ -81,6 +81,8 @@ const setDailyProblem = async (contestId, index) => {
       name,
       rating,
       date: todayStr,
+      platform: 'codeforces',
+      url: `https://codeforces.com/contest/${contestId}/problem/${index}`,
     },
     { upsert: true, new: true }
   );
@@ -151,4 +153,38 @@ const checkCompletion = async (handle, memberId) => {
   return { solved, problem, alreadyCompleted: false };
 };
 
-module.exports = { setDailyProblem, getTodayProblem, getHistory, fetchProblemFromCF, checkCompletion };
+/**
+ * Directly sets a daily problem without fetching from Codeforces API.
+ * Used for LeetCode problems or manually entered problems.
+ * @param {{ name: string, url?: string, platform?: string, rating: number, contestId: number, index: string }} data
+ * @returns {Promise<Object>} The upserted DailyProblem document
+ */
+const setDailyProblemDirect = async (data) => {
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const problem = await DailyProblem.findOneAndUpdate(
+    { date: todayStr },
+    {
+      contestId: data.contestId || 0,
+      index: data.index || 'LC',
+      name: data.name,
+      rating: data.rating || 0,
+      url: data.url || null,
+      platform: data.platform || 'codeforces',
+      date: todayStr,
+    },
+    { upsert: true, new: true }
+  );
+
+  // Enforce 7-record retention limit
+  const totalCount = await DailyProblem.countDocuments();
+  if (totalCount > 7) {
+    const toKeep = await DailyProblem.find().sort({ date: -1 }).limit(7).select('_id');
+    const keepIds = toKeep.map((doc) => doc._id);
+    await DailyProblem.deleteMany({ _id: { $nin: keepIds } });
+  }
+
+  return problem;
+};
+
+module.exports = { setDailyProblem, setDailyProblemDirect, getTodayProblem, getHistory, fetchProblemFromCF, checkCompletion };

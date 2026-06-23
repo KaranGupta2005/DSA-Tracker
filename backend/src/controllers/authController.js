@@ -114,6 +114,7 @@ const login = async (req, res, next) => {
       member: {
         id: member._id,
         codeforcesHandle: member.codeforcesHandle,
+        leetcodeUsername: member.leetcodeUsername,
         role: member.role,
         status: member.status,
         codeforcesRating: member.codeforcesRating,
@@ -333,4 +334,31 @@ const rejectMember = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, adminLogin, createAdmin, linkLeetcode, approveMember, rejectMember };
+/**
+ * Update the authenticated member's Codeforces handle.
+ * PATCH /api/auth/profile/codeforces
+ */
+const updateCodeforcesHandle = async (req, res, next) => {
+  try {
+    const { codeforcesHandle } = req.body;
+    if (!codeforcesHandle) {
+      throw createAppError('VALIDATION_ERROR', 'Codeforces handle is required.');
+    }
+    // Verify handle exists
+    const cfData = await verifyHandle(codeforcesHandle);
+    // Check for duplicate
+    const existing = await Member.findOne({ codeforcesHandle: cfData.handle, _id: { $ne: req.user.memberId } });
+    if (existing) {
+      throw createAppError('VALIDATION_ERROR', 'This Codeforces handle is already registered by another member.');
+    }
+    const updated = await Member.findByIdAndUpdate(req.user.memberId, {
+      codeforcesHandle: cfData.handle,
+      avatar: cfData.avatar,
+      codeforcesRating: cfData.rating,
+      codeforcesRank: cfData.rank,
+    }, { new: true });
+    res.json({ message: 'Codeforces handle updated successfully.', member: { id: updated._id, codeforcesHandle: updated.codeforcesHandle, codeforcesRating: updated.codeforcesRating, codeforcesRank: updated.codeforcesRank } });
+  } catch (err) { next(err); }
+};
+
+module.exports = { register, login, adminLogin, createAdmin, linkLeetcode, approveMember, rejectMember, updateCodeforcesHandle };
