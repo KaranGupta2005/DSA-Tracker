@@ -90,18 +90,51 @@ connectDB().then(async () => {
     app.listen(config.port, () => {
       console.log(`Server is running on port ${config.port}`);
 
-      // Start contest notification scheduler — checks every 30 minutes
+      // Contest notification scheduler
+      // Checks every 30 minutes, sends notifications for contests starting within 2 hours
+      // Tracks notified contests to avoid duplicate notifications
       const { notifyUpcomingContests } = require('./services/pushNotificationService');
       const { getUpcomingContests } = require('./services/contestService');
 
+      const notifiedContests = new Set(); // Track contests we've already notified about
+
       const checkAndNotify = async () => {
         try {
-          // First refresh the contest cache
-          await getUpcomingContests();
-          // Then check for upcoming contests and notify
-          const result = await notifyUpcomingContests();
-          if (result.notified > 0) {
-            console.log(`[Contest Notifier] Sent ${result.notified} notifications for ${result.contests} contest(s)`);
+          // Refresh the contest cache
+          const contestData = await getUpcomingContests();
+          const now = new Date();
+          const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+          // Find contests starting within 2 hours that we haven't notified about
+          const allContests = [
+            ...(contestData.contests.codeforces || []).map(c => ({ ...c, platform: 'Codeforces' })),
+            ...(contestData.contests.leetcode || []).map(c => ({ ...c, platform: 'LeetCode' })),
+          ];
+
+          const upcoming = allContests.filter(c => {
+            const startTime = new Date(c.startTime);
+            return startTime > now && startTime <= twoHoursFromNow;
+          });
+
+          for (const contest of upcoming) {
+            const contestKey = `${contest.name}-${contest.startTime}`;
+            if (notifiedContests.has(contestKey)) continue; // Already notified
+
+            // Send notification to all subscribers
+            const result = await notifyUpcomingContests();
+            if (result.notified > 0) {
+              console.log(`[Contest Notifier] ${contest.platform}: "${contest.name}" starts in <2hrs — sent to ${result.notified} members`);
+            }
+            notifiedContests.add(contestKey);
+
+            // Clean old entries (older than 3 hours)
+            for (const key of notifiedContests) {
+              const timestamp = key.split('-').pop();
+              if (new Date(timestamp) < new Date(now.getTime() - 3 * 60 * 60 * 1000)) {
+                notifiedContests.delete(key);
+              }
+            }
+            break; // One notification batch per check cycle
           }
         } catch (err) {
           console.error('[Contest Notifier] Error:', err.message);
@@ -110,8 +143,9 @@ connectDB().then(async () => {
 
       // Run every 30 minutes
       setInterval(checkAndNotify, 30 * 60 * 1000);
-      // Also run once on startup after a short delay
+      // Run once on startup after 10s
       setTimeout(checkAndNotify, 10000);
+      console.log('[Contest Notifier] Scheduler started — checks every 30min, notifies 2hrs before contests');
     });
   }
 });

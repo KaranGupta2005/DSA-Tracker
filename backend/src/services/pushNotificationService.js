@@ -71,15 +71,18 @@ async function notifyUpcomingContests() {
   const invalidSubscriptionIds = [];
 
   for (const contest of upcomingContests) {
-    const startTimeStr = new Date(contest.startTime).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
+    const startTime = new Date(contest.startTime);
+    const now = new Date();
+    const minsUntil = Math.round((startTime - now) / (60 * 1000));
+    const timeStr = minsUntil >= 60
+      ? `${Math.floor(minsUntil / 60)}h ${minsUntil % 60}m`
+      : `${minsUntil} min`;
+
+    const platformName = contest.platform === 'codeforces' ? 'Codeforces' : 'LeetCode';
 
     const payload = {
-      title: `Contest Reminder: ${contest.name}`,
-      body: `${contest.platform === 'codeforces' ? 'Codeforces' : 'LeetCode'} contest starting at ${startTimeStr}`,
+      title: `⏰ ${platformName} Contest in ${timeStr}!`,
+      body: `${contest.name} starts soon. Get ready!`,
       url: contest.url || '/contests',
     };
 
@@ -88,7 +91,6 @@ async function notifyUpcomingContests() {
       if (success) {
         notifiedCount++;
       } else {
-        // Track invalid subscriptions for cleanup
         if (!invalidSubscriptionIds.includes(member._id.toString())) {
           invalidSubscriptionIds.push(member._id.toString());
         }
