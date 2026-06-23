@@ -80,6 +80,35 @@ function LeaderboardPage() {
     return 'Score';
   };
 
+  // Column values change based on sort mode
+  const getProblemsValue = (member) => {
+    if (sortMode === 'cfRating') {
+      // CF problems = total from CF (not stored directly, use totalProblems - LC)
+      return member.totalProblems ?? member.problemsSolved ?? 0;
+    }
+    if (sortMode === 'lcRating') {
+      const lc = member.leetcodeStats || {};
+      return (lc.easy || 0) + (lc.medium || 0) + (lc.hard || 0);
+    }
+    // Activity Score: show daily completions / total problems
+    return member.totalProblems ?? member.problemsSolved ?? 0;
+  };
+
+  const getStreakValue = (member) => {
+    // Streak is the same regardless — it's the LC streak or POTD streak
+    return member.currentStreak ?? member.streak ?? 0;
+  };
+
+  const getProblemsLabel = () => {
+    if (sortMode === 'cfRating') return 'Problems';
+    if (sortMode === 'lcRating') return 'LC Solved';
+    return 'Problems';
+  };
+
+  const getStreakLabel = () => {
+    return 'Streak';
+  };
+
   const getRankIcon = (rank) => {
     if (rank === 1) return <Trophy className="w-5 h-5" style={{ color: '#ffd60a' }} />;
     if (rank === 2) return <Medal className="w-5 h-5" style={{ color: '#c0c0c0' }} />;
@@ -182,16 +211,16 @@ function LeaderboardPage() {
                     <div className="text-center">
                       <div className="flex items-center gap-1 text-white/50 mb-0.5">
                         <Target className="w-3.5 h-3.5" />
-                        <span className="text-[11px] uppercase">Problems</span>
+                        <span className="text-[11px] uppercase">{getProblemsLabel()}</span>
                       </div>
-                      <p className="text-lime-400 font-bold tabular-nums">{currentUser.totalProblems ?? 0}</p>
+                      <p className="text-lime-400 font-bold tabular-nums">{getProblemsValue(currentUser)}</p>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center gap-1 text-white/50 mb-0.5">
                         <Flame className="w-3.5 h-3.5" />
-                        <span className="text-[11px] uppercase">Streak</span>
+                        <span className="text-[11px] uppercase">{getStreakLabel()}</span>
                       </div>
-                      <p className="text-orange-400 font-bold tabular-nums">{currentUser.currentStreak ?? 0}</p>
+                      <p className="text-orange-400 font-bold tabular-nums">{getStreakValue(currentUser)}</p>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center gap-1 text-white/50 mb-0.5">
@@ -282,8 +311,8 @@ function LeaderboardPage() {
               <div className="grid grid-cols-[60px_1fr_100px_90px_100px] gap-3 px-5 py-2.5 border-b border-[#222]">
                 <span className="text-xs font-medium text-white/50 uppercase">Rank</span>
                 <span className="text-xs font-medium text-white/50 uppercase">Member</span>
-                <span className="text-xs font-medium text-white/50 uppercase text-center">Problems</span>
-                <span className="text-xs font-medium text-white/50 uppercase text-center">Streak</span>
+                <span className="text-xs font-medium text-white/50 uppercase text-center">{getProblemsLabel()}</span>
+                <span className="text-xs font-medium text-white/50 uppercase text-center">{getStreakLabel()}</span>
                 <span className="text-xs font-medium text-white/50 uppercase text-right">{getScoreLabel()}</span>
               </div>
 
@@ -333,14 +362,14 @@ function LeaderboardPage() {
 
                       {/* Problems */}
                       <p className="text-sm text-lime-400 font-bold tabular-nums text-center">
-                        {member.totalProblems ?? 0}
+                        {getProblemsValue(member)}
                       </p>
 
                       {/* Streak */}
                       <div className="flex items-center justify-center gap-1">
                         <Flame className="w-3.5 h-3.5 text-orange-400" />
                         <span className="text-sm font-medium text-white/70 tabular-nums">
-                          {member.currentStreak ?? 0}
+                          {getStreakValue(member)}
                         </span>
                       </div>
 
@@ -409,13 +438,13 @@ function LeaderboardPage() {
                         <div className="flex items-center gap-1.5">
                           <Target className="w-3.5 h-3.5 text-white/30" />
                           <span className="text-xs text-white/50">
-                            {member.totalProblems ?? 0} solved
+                            {getProblemsValue(member)} solved
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Flame className="w-3.5 h-3.5 text-orange-400/60" />
                           <span className="text-xs text-white/50">
-                            {member.currentStreak ?? 0} day streak
+                            {getStreakValue(member)} day streak
                           </span>
                         </div>
                       </div>
