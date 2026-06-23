@@ -12,6 +12,8 @@ const leetcodeRoutes = require('./routes/leetcodeRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const contestRoutes = require('./routes/contestRoutes');
 const dailyRoutes = require('./routes/dailyRoutes');
+const aiRoutes = require('./routes/aiRoutes');
+const sessionPrepRoutes = require('./routes/sessionPrepRoutes');
 
 const app = express();
 
@@ -34,6 +36,8 @@ app.use('/api/leetcode', leetcodeRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/contests', contestRoutes);
 app.use('/api/daily', dailyRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/session-prep', sessionPrepRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);
