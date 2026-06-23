@@ -9,6 +9,7 @@ const memberSchema = new mongoose.Schema({
   avatar: { type: String },
   codeforcesRating: { type: Number, default: null },
   codeforcesRank: { type: String, default: 'Unrated' },
+  leetcodeRating: { type: Number, default: 0 },
   leetcodeStats: {
     easy: { type: Number, default: 0 },
     medium: { type: Number, default: 0 },

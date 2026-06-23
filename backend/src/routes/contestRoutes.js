@@ -9,7 +9,7 @@ router.get('/upcoming', authMiddleware, contestController.getUpcoming);
 // POST /api/contests/subscribe - Subscribe to push notifications (member)
 router.post('/subscribe', authMiddleware, contestController.subscribe);
 
-// POST /api/contests/test-notification - Send a test push notification (admin)
+// POST /api/contests/test-notification - Send a test push notification to self
 router.post('/test-notification', authMiddleware, async (req, res, next) => {
   try {
     const { sendPushNotification } = require('../services/pushNotificationService');
@@ -32,6 +32,39 @@ router.post('/test-notification', authMiddleware, async (req, res, next) => {
     } else {
       res.status(500).json({ error: { code: 'PUSH_FAILED', message: 'Failed to send notification. Your subscription may be invalid.' } });
     }
+  } catch (err) { next(err); }
+});
+
+// POST /api/contests/broadcast - Admin: send custom notification to all subscribers
+const adminMiddleware = require('../middleware/adminMiddleware');
+router.post('/broadcast', authMiddleware, adminMiddleware, async (req, res, next) => {
+  try {
+    const { sendPushNotification } = require('../services/pushNotificationService');
+    const Member = require('../Models/Member');
+    const { title, body, url } = req.body;
+
+    if (!title || !body) {
+      return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Title and body are required.' } });
+    }
+
+    const members = await Member.find({ pushSubscription: { $ne: null }, status: 'active' });
+    const payload = { title, body, url: url || '/' };
+
+    let sent = 0;
+    let failed = 0;
+
+    for (const member of members) {
+      const success = await sendPushNotification(member.pushSubscription, payload);
+      if (success) {
+        sent++;
+      } else {
+        failed++;
+        // Remove invalid subscriptions
+        await Member.findByIdAndUpdate(member._id, { pushSubscription: null });
+      }
+    }
+
+    res.json({ message: `Notification sent to ${sent} members.`, sent, failed, total: members.length });
   } catch (err) { next(err); }
 });
 

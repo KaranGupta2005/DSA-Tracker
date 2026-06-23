@@ -13,7 +13,7 @@ const sync = async (req, res, next) => {
 
     // Persist stats to the Member model so leaderboard can use them
     if (req.user && req.user.memberId && result.stats) {
-      await Member.findByIdAndUpdate(req.user.memberId, {
+      const updateData = {
         leetcodeStats: {
           easy: result.stats.easy || 0,
           medium: result.stats.medium || 0,
@@ -22,7 +22,19 @@ const sync = async (req, res, next) => {
         },
         currentStreak: result.streak || 0,
         lastSyncedAt: new Date(),
-      });
+      };
+
+      // Fetch LC contest rating if available
+      try {
+        const lcRatingData = await leetcodeService.getContestRating(username);
+        if (lcRatingData && lcRatingData.rating) {
+          updateData.leetcodeRating = Math.round(lcRatingData.rating);
+        }
+      } catch (e) {
+        // LC rating fetch is optional — don't fail the sync
+      }
+
+      await Member.findByIdAndUpdate(req.user.memberId, updateData);
     }
 
     res.json({

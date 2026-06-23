@@ -666,6 +666,80 @@ function AdminDashboardPage() {
           </Box>
         </motion.div>
 
+        {/* Broadcast Notification Section */}
+        <motion.div variants={itemVariants} className="mb-8">
+          <Box
+            sx={{
+              background: 'rgba(15, 23, 42, 0.8)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 3,
+              p: 3,
+            }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Typography variant="h6" sx={{ color: '#fff', fontWeight: 600 }}>
+                📢 Send Notification to All
+              </Typography>
+            </div>
+            <Box
+              component="form"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const title = form.notifTitle.value;
+                const body = form.notifBody.value;
+                if (!title || !body) return;
+                try {
+                  const res = await api.post('/contests/broadcast', { title, body, url: '/' });
+                  setFormSuccess(`Notification sent to ${res.data.sent} members!`);
+                  form.reset();
+                } catch (err) {
+                  setFormError(err.response?.data?.error?.message || 'Failed to send notification.');
+                }
+              }}
+              sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}
+            >
+              <TextField
+                name="notifTitle"
+                label="Title"
+                placeholder="e.g. 🚀 New Feature!"
+                size="small"
+                required
+                sx={{ minWidth: 200 }}
+                slotProps={{
+                  input: { sx: { color: '#fff' } },
+                  inputLabel: { sx: { color: 'rgba(255,255,255,0.6)' } },
+                }}
+              />
+              <TextField
+                name="notifBody"
+                label="Message"
+                placeholder="e.g. Check out the new leaderboard..."
+                size="small"
+                required
+                sx={{ minWidth: 300, flex: 1 }}
+                slotProps={{
+                  input: { sx: { color: '#fff' } },
+                  inputLabel: { sx: { color: 'rgba(255,255,255,0.6)' } },
+                }}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
+                  '&:hover': { background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)' },
+                }}
+              >
+                Broadcast
+              </Button>
+            </Box>
+          </Box>
+        </motion.div>
+
         {/* All Members Section */}
         <motion.div variants={itemVariants}>
           <Box

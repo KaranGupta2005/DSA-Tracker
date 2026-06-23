@@ -14,7 +14,7 @@ const PERIODS = [
 const SORT_MODES = [
   { label: 'Activity Score', value: 'score' },
   { label: 'CF Rating', value: 'cfRating' },
-  { label: 'LC Solved', value: 'lcSolved' },
+  { label: 'LC Rating', value: 'lcRating' },
 ];
 
 function LeaderboardPage() {
@@ -56,9 +56,8 @@ function LeaderboardPage() {
     if (sortMode === 'cfRating') {
       return (b.codeforcesRating || 0) - (a.codeforcesRating || 0);
     }
-    if (sortMode === 'lcSolved') {
-      const getLC = (m) => (m.leetcodeStats?.easy || 0) + (m.leetcodeStats?.medium || 0) + (m.leetcodeStats?.hard || 0);
-      return getLC(b) - getLC(a);
+    if (sortMode === 'lcRating') {
+      return (b.leetcodeRating || 0) - (a.leetcodeRating || 0);
     }
     // Default: activity score (handle both field names from API)
     return (b.activityScore ?? b.score ?? 0) - (a.activityScore ?? a.score ?? 0);
@@ -71,15 +70,13 @@ function LeaderboardPage() {
   // Helper to get display value based on sort mode
   const getScoreValue = (member) => {
     if (sortMode === 'cfRating') return member.codeforcesRating || 0;
-    if (sortMode === 'lcSolved') {
-      return (member.leetcodeStats?.easy || 0) + (member.leetcodeStats?.medium || 0) + (member.leetcodeStats?.hard || 0);
-    }
+    if (sortMode === 'lcRating') return member.leetcodeRating || 0;
     return member.activityScore ?? member.score ?? 0;
   };
 
   const getScoreLabel = () => {
     if (sortMode === 'cfRating') return 'CF Rating';
-    if (sortMode === 'lcSolved') return 'LC Solved';
+    if (sortMode === 'lcRating') return 'LC Rating';
     return 'Score';
   };
 

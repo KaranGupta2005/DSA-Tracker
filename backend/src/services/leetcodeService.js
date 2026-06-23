@@ -333,6 +333,34 @@ const syncProfile = async (username) => {
   return result;
 };
 
+/**
+ * Fetches the LeetCode contest rating for a user.
+ * @param {string} username
+ * @returns {Promise<{rating: number, attendedContests: number, globalRanking: number}>}
+ */
+const getContestRating = async (username) => {
+  const query = `query {
+    userContestRanking(username: "${username}") {
+      rating
+      attendedContestsCount
+      globalRanking
+    }
+  }`;
+
+  const data = await leetcodeGraphQL(query);
+
+  if (!data.data || !data.data.userContestRanking) {
+    return { rating: 0, attendedContests: 0, globalRanking: 0 };
+  }
+
+  const ranking = data.data.userContestRanking;
+  return {
+    rating: ranking.rating || 0,
+    attendedContests: ranking.attendedContestsCount || 0,
+    globalRanking: ranking.globalRanking || 0,
+  };
+};
+
 module.exports = {
   verifyUsername,
   getStats,
@@ -341,4 +369,5 @@ module.exports = {
   getSubmissionCalendar,
   calculateStreak,
   syncProfile,
+  getContestRating,
 };

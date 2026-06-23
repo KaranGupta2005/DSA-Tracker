@@ -26,7 +26,7 @@ export default function Boilerplate(WrappedComponent) {
         <div className="min-h-screen bg-[#09090b] text-white font-sans">
           <Sidebar />
           <main className="min-h-screen md:pl-[64px] transition-all duration-300">
-            <div className="w-full px-6 py-8">
+            <div className="w-full px-4 md:px-6 py-6 pb-24 md:pb-8">
               <WrappedComponent {...props} />
             </div>
           </main>
