@@ -1,4 +1,5 @@
 const SessionProgress = require('../Models/SessionProgress');
+const { callAI } = require('./aiService');
 const { createAppError } = require('../middleware/errorHandler');
 
 /**
@@ -209,11 +210,148 @@ const getTimeline = (currentDate) => {
   return milestones;
 };
 
+/**
+ * Generates AI-powered topic content including explanations, talking points, and example code.
+ * Calls the AI service with a topic-specific prompt and returns structured content.
+ * @param {string} topic - The topic to generate content for
+ * @returns {Promise<{topic: string, explanations: string, talkingPoints: string[], exampleCode: string}>}
+ * @throws {Error} AI_SERVICE_UNAVAILABLE if AI providers are unavailable
+ */
+const generateTopicContent = async (topic) => {
+  const prompt = `You are an AI/ML educator preparing content for an undergraduate workshop session on "${topic}".
+
+Generate educational content in the following JSON format:
+{
+  "explanations": "Clear, detailed explanations of the topic suitable for undergraduate students",
+  "talkingPoints": ["point 1", "point 2", "point 3", "point 4", "point 5"],
+  "exampleCode": "A complete, runnable Python code example demonstrating the key concept"
+}
+
+Rules:
+- explanations: A comprehensive but accessible explanation of the topic (2-4 paragraphs)
+- talkingPoints: 3 to 7 key talking points the presenter should cover
+- exampleCode: A practical Python code example with comments explaining each step
+
+Respond ONLY with valid JSON, no additional text.`;
+
+  const rawResponse = await callAI(prompt);
+
+  // Parse the JSON response
+  let content;
+  try {
+    const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No JSON found in response');
+    }
+    content = JSON.parse(jsonMatch[0]);
+  } catch (parseErr) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'Failed to parse AI response for topic content.',
+      { rawResponse: rawResponse.substring(0, 200) }
+    );
+  }
+
+  // Validate required fields
+  if (!content.explanations || typeof content.explanations !== 'string') {
+    throw createAppError('VALIDATION_ERROR', 'AI response missing valid explanations field.');
+  }
+  if (!Array.isArray(content.talkingPoints) || content.talkingPoints.length === 0) {
+    throw createAppError('VALIDATION_ERROR', 'AI response missing valid talkingPoints field.');
+  }
+  if (!content.exampleCode || typeof content.exampleCode !== 'string') {
+    throw createAppError('VALIDATION_ERROR', 'AI response missing valid exampleCode field.');
+  }
+
+  return {
+    topic,
+    explanations: content.explanations,
+    talkingPoints: content.talkingPoints,
+    exampleCode: content.exampleCode,
+  };
+};
+
+/**
+ * Generates AI-powered practice questions with model answers for a session topic.
+ * Returns between 3 and 10 questions targeted at an undergraduate workshop audience.
+ * @param {string} topic - The topic to generate questions for
+ * @returns {Promise<{topic: string, questions: Array<{question: string, answer: string}>}>}
+ * @throws {Error} AI_SERVICE_UNAVAILABLE if AI providers are unavailable
+ */
+const generatePracticeQuestions = async (topic) => {
+  const prompt = `You are an AI/ML educator creating practice questions for an undergraduate workshop on "${topic}".
+
+Generate practice questions with model answers in the following JSON format:
+{
+  "questions": [
+    {"question": "Question text here?", "answer": "Model answer here"},
+    {"question": "Question text here?", "answer": "Model answer here"}
+  ]
+}
+
+Rules:
+- Generate between 3 and 10 questions (aim for 5-7)
+- Questions should be appropriate for undergraduate-level students attending a workshop
+- Include a mix of conceptual understanding and practical application questions
+- Model answers should be concise but complete (2-4 sentences each)
+- Questions should progress from basic understanding to more advanced application
+
+Respond ONLY with valid JSON, no additional text.`;
+
+  const rawResponse = await callAI(prompt);
+
+  // Parse the JSON response
+  let content;
+  try {
+    const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No JSON found in response');
+    }
+    content = JSON.parse(jsonMatch[0]);
+  } catch (parseErr) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      'Failed to parse AI response for practice questions.',
+      { rawResponse: rawResponse.substring(0, 200) }
+    );
+  }
+
+  // Validate questions array
+  if (!Array.isArray(content.questions)) {
+    throw createAppError('VALIDATION_ERROR', 'AI response missing valid questions array.');
+  }
+
+  // Validate question count (3-10)
+  if (content.questions.length < 3 || content.questions.length > 10) {
+    throw createAppError(
+      'VALIDATION_ERROR',
+      `AI response must contain 3-10 questions, received ${content.questions.length}.`
+    );
+  }
+
+  // Validate each question has question and answer fields
+  for (const q of content.questions) {
+    if (!q || typeof q.question !== 'string' || q.question.trim().length === 0) {
+      throw createAppError('VALIDATION_ERROR', 'Each question must have a non-empty question field.');
+    }
+    if (!q || typeof q.answer !== 'string' || q.answer.trim().length === 0) {
+      throw createAppError('VALIDATION_ERROR', 'Each question must have a non-empty answer field.');
+    }
+  }
+
+  return {
+    topic,
+    questions: content.questions,
+  };
+};
+
 module.exports = {
   getCurriculum,
   getProgress,
   completeModule,
   getTimeline,
+  generateTopicContent,
+  generatePracticeQuestions,
   calculateCompletionPercentage,
   CURRICULUM,
   TOTAL_MODULES,
