@@ -83,26 +83,27 @@ function LeaderboardPage() {
   // Column values change based on sort mode
   const getProblemsValue = (member) => {
     if (sortMode === 'cfRating') {
-      // CF problems = total from CF (not stored directly, use totalProblems - LC)
+      // CF mode: show CF rating-based "problems" — not available, show total
       return member.totalProblems ?? member.problemsSolved ?? 0;
     }
     if (sortMode === 'lcRating') {
+      // LC mode: show LC solved
       const lc = member.leetcodeStats || {};
       return (lc.easy || 0) + (lc.medium || 0) + (lc.hard || 0);
     }
-    // Activity Score: show daily completions / total problems
-    return member.totalProblems ?? member.problemsSolved ?? 0;
+    // Activity Score mode: show POTD completions
+    return member.dailyCompletions ?? 0;
   };
 
   const getStreakValue = (member) => {
-    // Streak is the same regardless — it's the LC streak or POTD streak
+    // Streak: always show the current streak (LC-based or POTD-based)
     return member.currentStreak ?? member.streak ?? 0;
   };
 
   const getProblemsLabel = () => {
-    if (sortMode === 'cfRating') return 'Problems';
+    if (sortMode === 'cfRating') return 'LC Solved';
     if (sortMode === 'lcRating') return 'LC Solved';
-    return 'Problems';
+    return 'POTD Done';
   };
 
   const getStreakLabel = () => {

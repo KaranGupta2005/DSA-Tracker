@@ -146,6 +146,7 @@ const getLeaderboard = async (period = 'all-time') => {
       activityScore: score,
       problemsSolved: stats.problemsSolved,
       totalProblems: stats.problemsSolved,
+      dailyCompletions: stats.dailyCompletions,
       streak: stats.streak,
       currentStreak: stats.streak,
       lastSyncedAt: member.lastSyncedAt || new Date(0),
@@ -173,6 +174,7 @@ const getLeaderboard = async (period = 'all-time') => {
     activityScore: entry.activityScore,
     problemsSolved: entry.problemsSolved,
     totalProblems: entry.totalProblems,
+    dailyCompletions: entry.dailyCompletions,
     streak: entry.streak,
     currentStreak: entry.currentStreak,
   }));
