@@ -14,7 +14,7 @@ import {
 import {
   EmojiEvents as ContestIcon,
   NotificationsActive as NotifIcon,
-  AccessTime as TimeIcon,
+  Schedule as TimeIcon,
   Timer as DurationIcon,
   Warning as WarningIcon,
 } from '@mui/icons-material';
