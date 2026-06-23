@@ -99,6 +99,7 @@ describe('authMiddleware', () => {
       memberId: '123',
       role: 'member',
       status: 'active',
+      isHeadAdmin: false,
     });
     expect(next).toHaveBeenCalled();
     expect(res.status).not.toHaveBeenCalled();
@@ -119,6 +120,7 @@ describe('authMiddleware', () => {
       memberId: 'admin1',
       role: 'admin',
       status: 'active',
+      isHeadAdmin: false,
     });
     expect(next).toHaveBeenCalled();
   });

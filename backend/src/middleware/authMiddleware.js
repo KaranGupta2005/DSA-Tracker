@@ -23,6 +23,7 @@ const authMiddleware = (req, res, next) => {
       memberId: decoded.memberId,
       role: decoded.role,
       status: decoded.status,
+      isHeadAdmin: decoded.isHeadAdmin || false,
     };
 
     // Deny access to pending members
