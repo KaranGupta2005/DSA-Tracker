@@ -1,147 +1,123 @@
-import { useRef } from 'react';
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import StyledButton from '../components/StyledButton';
-import Boilerplate from '../components/Boilerplate';
+import Navbar from '../components/Navbar';
 
 /**
- * LandingPage component with hero section and parallax scroll effect.
- * Uses Framer Motion useScroll + useTransform for parallax.
- * Respects prefers-reduced-motion to disable parallax and entrance animations.
- * Excludes About, Advisory, Chapters, and Form sections.
+ * Landing Page — replicates the Model_NextJs-project hero section style.
+ * Full-screen hero with background image, parallax, gradient overlay,
+ * left-aligned content, staggered animations, and scroll-down indicator.
+ * Excludes About, Advisory, Chapters, Form sections per spec.
  */
-function LandingPage() {
-  const heroRef = useRef(null);
+export default function LandingPage() {
+  const { scrollY } = useScroll();
   const prefersReducedMotion = useReducedMotion();
 
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ['start start', 'end start'],
-  });
-
-  // Parallax transforms — disabled when user prefers reduced motion
-  const backgroundY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
-  const textY = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
-  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
-
-  // Animation variants — simplified when reduced motion is preferred
-  const headingVariants = prefersReducedMotion
-    ? { hidden: { opacity: 1 }, visible: { opacity: 1 } }
-    : {
-        hidden: { opacity: 0, y: 30 },
-        visible: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: 0.8, ease: 'easeOut' },
-        },
-      };
-
-  const subheadingVariants = prefersReducedMotion
-    ? { hidden: { opacity: 1 }, visible: { opacity: 1 } }
-    : {
-        hidden: { opacity: 0, y: 20 },
-        visible: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: 0.8, delay: 0.2, ease: 'easeOut' },
-        },
-      };
-
-  const buttonVariants = prefersReducedMotion
-    ? { hidden: { opacity: 1 }, visible: { opacity: 1 } }
-    : {
-        hidden: { opacity: 0, y: 20 },
-        visible: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: 0.8, delay: 0.4, ease: 'easeOut' },
-        },
-      };
+  const opacity = useTransform(scrollY, [0, 400], [1, 0]);
+  const y = useTransform(scrollY, [0, 400], [0, -100]);
 
   return (
-    <section
-      ref={heroRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
-    >
-      {/* Parallax Background */}
-      <motion.div
-        className="absolute inset-0 z-0"
-        style={{
-          y: prefersReducedMotion ? 0 : backgroundY,
-        }}
+    <div className="w-full flex flex-col overflow-x-hidden">
+      <Navbar />
+
+      {/* Hero Section */}
+      <motion.section
+        style={prefersReducedMotion ? {} : { opacity, y }}
+        className="relative h-screen w-full"
       >
-        {/* Gradient background with animated mesh */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900" />
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-600 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-cyan-500 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-        </div>
-        {/* Grid pattern overlay */}
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }}
+        {/* Background Image with subtle scale animation */}
+        <motion.div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/background.jpg')" }}
+          initial={prefersReducedMotion ? {} : { scale: 1 }}
+          animate={prefersReducedMotion ? {} : { scale: 1.05 }}
+          transition={
+            prefersReducedMotion
+              ? {}
+              : {
+                  duration: 8,
+                  ease: 'easeInOut',
+                  repeat: Infinity,
+                  repeatType: 'reverse',
+                }
+          }
         />
-      </motion.div>
 
-      {/* Hero Content */}
-      <motion.div
-        className="relative z-10 text-center px-6 max-w-4xl mx-auto"
-        style={{
-          y: prefersReducedMotion ? 0 : textY,
-          opacity: prefersReducedMotion ? 1 : opacity,
-        }}
-      >
-        <motion.h1
-          className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight"
-          variants={headingVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          IEEE DTU{' '}
-          <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-            DSA Tracker
-          </span>
-        </motion.h1>
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80" />
 
-        <motion.p
-          className="text-lg md:text-xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed"
-          variants={subheadingVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          Your unified competitive programming tracking platform. Track Codeforces &amp; LeetCode
-          progress, compete on leaderboards, and level up with AI-powered insights.
-        </motion.p>
-
+        {/* Content — left aligned */}
         <motion.div
-          className="flex flex-col sm:flex-row items-center justify-center gap-4"
-          variants={buttonVariants}
-          initial="hidden"
-          animate="visible"
+          className="relative container mx-auto flex flex-col items-start justify-center h-full px-6 md:px-12"
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, ease: 'easeInOut' }}
         >
-          <StyledButton variant="primary">Get Started</StyledButton>
-          <StyledButton variant="secondary">View Leaderboard</StyledButton>
-        </motion.div>
-      </motion.div>
+          <motion.h2
+            initial={prefersReducedMotion ? {} : { opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 1.2 }}
+            className="text-indigo-400 text-2xl md:text-3xl font-semibold tracking-widest uppercase"
+          >
+            Welcome to
+          </motion.h2>
 
-      {/* Scroll indicator — hidden when reduced motion is preferred */}
-      {!prefersReducedMotion && (
-        <motion.div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <div className="w-6 h-10 rounded-full border-2 border-gray-400 flex items-start justify-center pt-2">
-            <div className="w-1.5 h-3 bg-gray-400 rounded-full" />
-          </div>
+          <motion.h1
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2, ease: 'easeOut', delay: 0.2 }}
+            className="text-white text-5xl md:text-6xl lg:text-7xl font-bold mt-4 leading-snug drop-shadow-lg"
+          >
+            IEEE DTU DSA Tracker
+          </motion.h1>
+
+          <motion.h2
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2, ease: 'easeOut', delay: 0.4 }}
+            className="text-indigo-300 text-2xl md:text-3xl font-semibold mt-4"
+          >
+            Track. Compete. Level Up.
+          </motion.h2>
+
+          <motion.p
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2, ease: 'easeOut', delay: 0.6 }}
+            className="text-gray-300 text-lg md:text-xl mt-4 max-w-2xl leading-relaxed"
+          >
+            Your unified competitive programming platform. Track Codeforces &amp; LeetCode
+            progress, compete on leaderboards, and level up with AI-powered insights.
+          </motion.p>
+
+          {/* Buttons */}
+          <motion.div
+            className="flex flex-wrap gap-4 mt-10"
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2, ease: 'easeOut', delay: 0.8 }}
+          >
+            <StyledButton href="/login" variant="primary">
+              Get Started
+            </StyledButton>
+            <StyledButton href="/leaderboard" variant="secondary">
+              View Leaderboard
+            </StyledButton>
+          </motion.div>
         </motion.div>
-      )}
-    </section>
+
+        {/* Scroll Down Indicator */}
+        {!prefersReducedMotion && (
+          <motion.div
+            className="absolute bottom-8 right-8 cursor-pointer p-3 rounded-full bg-indigo-600/80 hover:bg-indigo-500 transition-all"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: [0, -10, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            <KeyboardArrowDownIcon className="!text-white !text-3xl" />
+          </motion.div>
+        )}
+      </motion.section>
+    </div>
   );
 }
-
-export default Boilerplate(LandingPage);

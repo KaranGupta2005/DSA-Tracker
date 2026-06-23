@@ -1,73 +1,43 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { motion } from 'framer-motion';
 import {
-  Box,
-  Typography,
-  Avatar,
-  Chip,
-  CircularProgress,
-  Alert,
-  TextField,
-  LinearProgress,
-  Tooltip,
-} from '@mui/material';
-import {
-  EmojiEvents as TrophyIcon,
-  LocalFireDepartment as FireIcon,
-  Code as CodeIcon,
-  Sync as SyncIcon,
-  Link as LinkIcon,
-  Timeline as TimelineIcon,
-  Category as CategoryIcon,
-  History as HistoryIcon,
-} from '@mui/icons-material';
+  Trophy,
+  Flame,
+  Code2,
+  TrendingUp,
+  Zap,
+  RefreshCw,
+  User,
+  Activity,
+} from 'lucide-react';
 import Boilerplate from '@/components/Boilerplate';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/utils/api';
 
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
-};
-
-/** Map CF rank to badge color */
+/** Map CF rank to tailwind-friendly color */
 function getRankColor(rank) {
   if (!rank) return '#808080';
   const r = rank.toLowerCase();
-  if (r.includes('legendary grandmaster')) return '#ff0000';
-  if (r.includes('international grandmaster')) return '#ff0000';
-  if (r.includes('grandmaster')) return '#ff0000';
-  if (r.includes('international master')) return '#ff8c00';
-  if (r.includes('master')) return '#ff8c00';
-  if (r.includes('candidate master')) return '#aa00aa';
-  if (r.includes('expert')) return '#0000ff';
-  if (r.includes('specialist')) return '#03a89e';
-  if (r.includes('pupil')) return '#008000';
-  if (r.includes('newbie')) return '#808080';
-  return '#808080';
+  if (r.includes('grandmaster')) return '#ef4444';
+  if (r.includes('master') && !r.includes('candidate')) return '#f97316';
+  if (r.includes('candidate master')) return '#a855f7';
+  if (r.includes('expert')) return '#3b82f6';
+  if (r.includes('specialist')) return '#14b8a6';
+  if (r.includes('pupil')) return '#22c55e';
+  return '#808080'; // newbie / unrated
 }
 
-/** Get difficulty chip color */
-function getDifficultyColor(difficulty) {
+/** Difficulty colors */
+function getDifficultyClasses(difficulty) {
   switch (difficulty?.toLowerCase()) {
     case 'easy':
-      return 'rgba(34, 197, 94, 0.3)';
+      return 'bg-green-500/10 text-green-400 border-green-500/20';
     case 'medium':
-      return 'rgba(245, 158, 11, 0.3)';
+      return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
     case 'hard':
-      return 'rgba(239, 68, 68, 0.3)';
+      return 'bg-red-500/10 text-red-400 border-red-500/20';
     default:
-      return 'rgba(255, 255, 255, 0.1)';
+      return 'bg-white/10 text-white/60 border-white/10';
   }
 }
 
@@ -90,11 +60,8 @@ function ProfilePage() {
   const [leetcodeInput, setLeetcodeInput] = useState('');
   const [linkingLeetcode, setLinkingLeetcode] = useState(false);
   const [linkError, setLinkError] = useState('');
-  const [linkSuccess, setLinkSuccess] = useState('');
 
-  // General
-  const [error, setError] = useState('');
-
+  // Auth guard
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
@@ -109,7 +76,6 @@ function ProfilePage() {
   }, [user]);
 
   const fetchProfileData = async () => {
-    setError('');
     await Promise.all([fetchCodeforcesData(), fetchLeetCodeData()]);
   };
 
@@ -129,7 +95,7 @@ function ProfilePage() {
         setCfContests(contests.slice(0, 5));
       }
     } catch {
-      // Error handled gracefully
+      // handled gracefully
     } finally {
       setLoadingCF(false);
     }
@@ -151,7 +117,7 @@ function ProfilePage() {
         setLcSubmissions(subs.slice(0, 15));
       }
     } catch {
-      // Error handled gracefully
+      // handled gracefully
     } finally {
       setLoadingLC(false);
     }
@@ -160,7 +126,6 @@ function ProfilePage() {
   const handleSyncLeetCode = async () => {
     if (!user?.leetcodeUsername) return;
     setSyncing(true);
-    setError('');
     try {
       const res = await api.get(`/leetcode/sync/${user.leetcodeUsername}`);
       if (res?.data) {
@@ -169,7 +134,7 @@ function ProfilePage() {
         setLcSubmissions(subs.slice(0, 15));
       }
     } catch {
-      setError('Failed to sync LeetCode data. Please try again.');
+      // sync failed silently
     } finally {
       setSyncing(false);
     }
@@ -181,22 +146,15 @@ function ProfilePage() {
       setLinkError('Please enter your LeetCode username.');
       return;
     }
-
     setLinkingLeetcode(true);
     setLinkError('');
-    setLinkSuccess('');
-
     try {
       await api.patch('/auth/profile/leetcode', {
         leetcodeUsername: leetcodeInput.trim(),
       });
-      setLinkSuccess('LeetCode account linked successfully!');
-      setLeetcodeInput('');
-      // Update local user data
       const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
       storedUser.leetcodeUsername = leetcodeInput.trim();
       localStorage.setItem('user', JSON.stringify(storedUser));
-      // Reload to reflect changes
       window.location.reload();
     } catch (err) {
       const msg =
@@ -209,11 +167,23 @@ function ProfilePage() {
     }
   };
 
-  // Loading state
-  if (authLoading || (!user && !error)) {
+  // Loading skeleton
+  if (authLoading || !user) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)]">
-        <CircularProgress sx={{ color: '#1976d2' }} />
+      <div className="min-h-screen bg-[#09090b] p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="h-48 bg-white/5 rounded-3xl animate-pulse" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-4">
+              <div className="h-40 bg-white/5 rounded-2xl animate-pulse" />
+              <div className="h-60 bg-white/5 rounded-2xl animate-pulse" />
+            </div>
+            <div className="space-y-4">
+              <div className="h-32 bg-white/5 rounded-2xl animate-pulse" />
+              <div className="h-32 bg-white/5 rounded-2xl animate-pulse" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -231,541 +201,377 @@ function ProfilePage() {
   const currentStreak = lcData?.currentStreak ?? 0;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Page Header */}
-        <motion.div variants={itemVariants} className="mb-8">
-          <Typography
-            variant="h4"
-            component="h1"
-            sx={{ fontWeight: 700, color: '#fff', mb: 0.5 }}
-          >
-            Profile
-          </Typography>
-          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.6)' }}>
-            Your competitive programming stats
-          </Typography>
-        </motion.div>
-
-        {error && (
-          <motion.div variants={itemVariants} className="mb-6">
-            <Alert severity="error">{error}</Alert>
-          </motion.div>
-        )}
-
-        {/* ===== CODEFORCES SECTION ===== */}
-        <motion.div variants={itemVariants} className="mb-8">
-          <Box
-            sx={{
-              background: 'rgba(15, 23, 42, 0.8)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 3,
-              p: 3,
+    <div className="min-h-screen bg-[#09090b] p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* ===== PROFILE BANNER ===== */}
+        <div className="relative">
+          <div
+            className="h-48 rounded-3xl"
+            style={{
+              background: `linear-gradient(135deg, ${rankColor}33 0%, ${rankColor}11 50%, transparent 100%)`,
+              border: `1px solid ${rankColor}22`,
             }}
           >
-            <div className="flex items-center gap-2 mb-4">
-              <TrophyIcon sx={{ color: '#fbbf24' }} />
-              <Typography variant="h6" sx={{ color: '#fff', fontWeight: 600 }}>
-                Codeforces
-              </Typography>
+            {/* Rank badge top-right */}
+            <div className="absolute top-4 right-5 flex items-center gap-2">
+              <span
+                className="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide border"
+                style={{
+                  color: rankColor,
+                  backgroundColor: `${rankColor}15`,
+                  borderColor: `${rankColor}30`,
+                }}
+              >
+                {cfRank}
+              </span>
+              {cfRating != null && (
+                <span
+                  className="text-2xl font-black"
+                  style={{ color: rankColor }}
+                >
+                  {cfRating}
+                </span>
+              )}
             </div>
+          </div>
 
-            {loadingCF ? (
-              <div className="flex justify-center py-6">
-                <CircularProgress size={28} sx={{ color: '#fbbf24' }} />
-              </div>
+          {/* Avatar overlapping banner */}
+          <div className="absolute -bottom-10 left-6 flex items-end gap-4">
+            {cfAvatar ? (
+              <img
+                src={cfAvatar}
+                alt={user?.codeforcesHandle || 'Avatar'}
+                className="w-20 h-20 rounded-2xl border-4 border-[#09090b] object-cover"
+              />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* CF Profile Card */}
-                <div className="flex items-center gap-4">
-                  {cfAvatar && (
-                    <Avatar
-                      src={cfAvatar}
-                      sx={{ width: 64, height: 64, border: `2px solid ${rankColor}` }}
-                      alt={user?.codeforcesHandle}
-                    />
-                  )}
-                  <div>
-                    <Typography variant="h6" sx={{ color: '#fff', fontWeight: 600 }}>
-                      {user?.codeforcesHandle}
-                    </Typography>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Chip
-                        label={cfRank}
-                        size="small"
-                        sx={{
-                          backgroundColor: `${rankColor}22`,
-                          color: rankColor,
-                          fontWeight: 700,
-                          border: `1px solid ${rankColor}44`,
-                        }}
-                      />
-                      {cfRating != null && (
-                        <Typography
-                          variant="body2"
-                          sx={{ color: rankColor, fontWeight: 700 }}
-                        >
-                          {cfRating}
-                        </Typography>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* CF Rating Visual */}
-                <div>
-                  <Typography
-                    variant="body2"
-                    sx={{ color: 'rgba(255,255,255,0.6)', mb: 1, fontWeight: 500 }}
-                  >
-                    Rating
-                  </Typography>
-                  <Box
-                    sx={{
-                      background: 'rgba(255,255,255,0.05)',
-                      borderRadius: 2,
-                      p: 2,
-                      textAlign: 'center',
-                    }}
-                  >
-                    <Typography
-                      variant="h3"
-                      sx={{ color: rankColor, fontWeight: 800 }}
-                    >
-                      {cfRating != null ? cfRating : 'N/A'}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: 'rgba(255,255,255,0.5)' }}
-                    >
-                      {cfRating != null ? 'Current Rating' : 'Unrated'}
-                    </Typography>
-                  </Box>
-                </div>
+              <div className="w-20 h-20 rounded-2xl border-4 border-[#09090b] bg-[#151515] flex items-center justify-center">
+                <User className="w-8 h-8 text-white/40" />
               </div>
             )}
+            <div className="mb-1">
+              <h1 className="text-xl font-bold text-white">
+                {user?.codeforcesHandle || user?.name || 'User'}
+              </h1>
+              {user?.leetcodeUsername && (
+                <p className="text-xs text-white/40">LC: {user.leetcodeUsername}</p>
+              )}
+            </div>
+          </div>
+        </div>
 
+        {/* Spacer for avatar overlap */}
+        <div className="h-6" />
+
+        {/* ===== 2-COLUMN LAYOUT ===== */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* LEFT COLUMN (2/3 width) */}
+          <div className="lg:col-span-2 space-y-6">
             {/* CF Contest History */}
-            {cfContests.length > 0 && (
-              <div className="mt-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <TimelineIcon sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 20 }} />
-                  <Typography
-                    variant="subtitle2"
-                    sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}
-                  >
-                    Recent Contests
-                  </Typography>
+            <div className="bg-[#151515] rounded-2xl p-5 border border-white/5">
+              <h2 className="text-[11px] font-bold text-white/40 tracking-wider uppercase mb-4">
+                Codeforces Contest History
+              </h2>
+
+              {loadingCF ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-12 bg-white/5 rounded-lg animate-pulse" />
+                  ))}
                 </div>
+              ) : cfContests.length > 0 ? (
                 <div className="space-y-2">
                   {cfContests.map((contest, idx) => {
                     const ratingChange = contest.newRating - contest.oldRating;
                     const isPositive = ratingChange >= 0;
                     return (
-                      <motion.div
+                      <div
                         key={idx}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.05 }}
-                        className="flex items-center justify-between py-2 px-3 rounded-lg"
-                        style={{
-                          background: 'rgba(255,255,255,0.03)',
-                          border: '1px solid rgba(255,255,255,0.05)',
-                        }}
+                        className="flex items-center justify-between bg-white/5 rounded-lg p-3"
                       >
-                        <div className="flex-1 min-w-0">
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: '#fff',
-                              fontWeight: 500,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {contest.contestName || contest.name || `Contest #${contest.contestId}`}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: 'rgba(255,255,255,0.4)' }}
-                          >
-                            Rank: #{contest.rank}
-                          </Typography>
+                        <div className="flex-1 min-w-0 mr-3">
+                          <p className="text-sm text-white font-medium truncate">
+                            {contest.contestName || `Contest #${contest.contestId}`}
+                          </p>
+                          <p className="text-xs text-white/40">
+                            Rank #{contest.rank}
+                          </p>
                         </div>
-                        <div className="text-right">
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: isPositive ? '#22c55e' : '#ef4444',
-                              fontWeight: 700,
-                            }}
+                        <div className="text-right flex items-center gap-3">
+                          <span className="text-xs text-white/40">
+                            {contest.oldRating} → {contest.newRating}
+                          </span>
+                          <span
+                            className={`text-sm font-bold ${
+                              isPositive ? 'text-green-400' : 'text-red-400'
+                            }`}
                           >
-                            {isPositive ? '+' : ''}{ratingChange}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{ color: 'rgba(255,255,255,0.4)' }}
-                          >
-                            {contest.newRating}
-                          </Typography>
+                            {isPositive ? '+' : ''}
+                            {ratingChange}
+                          </span>
                         </div>
-                      </motion.div>
+                      </div>
                     );
                   })}
                 </div>
-              </div>
-            )}
-          </Box>
-        </motion.div>
-
-        {/* ===== LEETCODE SECTION ===== */}
-        <motion.div variants={itemVariants} className="mb-8">
-          <Box
-            sx={{
-              background: 'rgba(15, 23, 42, 0.8)',
-              backdropFilter: 'blur(20px)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 3,
-              p: 3,
-            }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <CodeIcon sx={{ color: '#22c55e' }} />
-                <Typography variant="h6" sx={{ color: '#fff', fontWeight: 600 }}>
-                  LeetCode
-                </Typography>
-                {currentStreak > 0 && (
-                  <Chip
-                    icon={<FireIcon sx={{ color: '#f97316', fontSize: 16 }} />}
-                    label={`${currentStreak} day streak`}
-                    size="small"
-                    sx={{
-                      backgroundColor: 'rgba(249, 115, 22, 0.15)',
-                      color: '#f97316',
-                      fontWeight: 600,
-                      ml: 1,
-                    }}
-                  />
-                )}
-              </div>
-
-              {/* Sync Button */}
-              {user?.leetcodeUsername && (
-                <motion.button
-                  onClick={handleSyncLeetCode}
-                  disabled={syncing}
-                  whileHover={{ scale: syncing ? 1 : 1.05 }}
-                  whileTap={{ scale: syncing ? 1 : 0.95 }}
-                  className="flex items-center gap-1 py-1.5 px-3 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-50"
-                  style={{
-                    background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                    border: 'none',
-                    cursor: syncing ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {syncing ? (
-                    <CircularProgress size={16} sx={{ color: '#fff' }} />
-                  ) : (
-                    <SyncIcon sx={{ fontSize: 16 }} />
-                  )}
-                  {syncing ? 'Syncing...' : 'Sync LeetCode'}
-                </motion.button>
+              ) : (
+                <p className="text-sm text-white/30 text-center py-4">
+                  {user?.codeforcesHandle
+                    ? 'No contest history found.'
+                    : 'No Codeforces handle linked.'}
+                </p>
               )}
             </div>
 
-            {/* Link LeetCode Form (if not linked) */}
-            {!user?.leetcodeUsername && (
-              <Box
-                sx={{
-                  background:
-                    'linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.1) 100%)',
-                  border: '1px solid rgba(34, 197, 94, 0.3)',
-                  borderRadius: 2,
-                  p: 3,
-                  mb: 2,
-                }}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <LinkIcon sx={{ color: '#22c55e' }} />
-                  <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 600 }}>
-                    Link Your LeetCode Account
-                  </Typography>
-                </div>
-                <Typography
-                  variant="body2"
-                  sx={{ color: 'rgba(255,255,255,0.6)', mb: 2 }}
-                >
-                  Connect your LeetCode account to see difficulty breakdown, tag
-                  distribution, and recent submissions.
-                </Typography>
-
-                {linkError && (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    {linkError}
-                  </Alert>
-                )}
-                {linkSuccess && (
-                  <Alert severity="success" sx={{ mb: 2 }}>
-                    {linkSuccess}
-                  </Alert>
-                )}
-
-                <Box
-                  component="form"
-                  onSubmit={handleLinkLeetcode}
-                  className="flex gap-2 items-start"
-                >
-                  <TextField
-                    size="small"
-                    placeholder="LeetCode username"
-                    value={leetcodeInput}
-                    onChange={(e) => setLeetcodeInput(e.target.value)}
-                    disabled={linkingLeetcode}
-                    sx={{ flex: 1 }}
-                    slotProps={{
-                      input: { sx: { color: '#fff' } },
-                      inputLabel: { sx: { color: 'rgba(255,255,255,0.6)' } },
-                    }}
-                  />
-                  <motion.button
-                    type="submit"
-                    disabled={linkingLeetcode}
-                    whileHover={{ scale: linkingLeetcode ? 1 : 1.02 }}
-                    whileTap={{ scale: linkingLeetcode ? 1 : 0.98 }}
-                    className="py-2 px-4 rounded-lg font-semibold text-white text-sm transition-all disabled:opacity-50"
-                    style={{
-                      background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                      border: 'none',
-                      cursor: linkingLeetcode ? 'not-allowed' : 'pointer',
-                    }}
+            {/* LC Difficulty Breakdown */}
+            <div className="bg-[#151515] rounded-2xl p-5 border border-white/5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-[11px] font-bold text-white/40 tracking-wider uppercase">
+                  LeetCode Breakdown
+                </h2>
+                {user?.leetcodeUsername && (
+                  <button
+                    onClick={handleSyncLeetCode}
+                    disabled={syncing}
+                    className="bg-[#84cc16] text-black text-[10px] font-black uppercase rounded-full px-5 py-2 flex items-center gap-1.5 hover:bg-[#a3e635] transition-colors disabled:opacity-50"
                   >
-                    {linkingLeetcode ? (
-                      <CircularProgress size={18} sx={{ color: '#fff' }} />
-                    ) : (
-                      'Link'
-                    )}
-                  </motion.button>
-                </Box>
-              </Box>
-            )}
+                    <RefreshCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+                    {syncing ? 'Syncing' : 'Sync'}
+                  </button>
+                )}
+              </div>
 
-            {/* LC Content (when linked) */}
-            {user?.leetcodeUsername && (
-              <>
-                {loadingLC ? (
-                  <div className="flex justify-center py-6">
-                    <CircularProgress size={28} sx={{ color: '#22c55e' }} />
+              {!user?.leetcodeUsername ? (
+                <LinkLeetCodeWidget
+                  leetcodeInput={leetcodeInput}
+                  setLeetcodeInput={setLeetcodeInput}
+                  handleLinkLeetcode={handleLinkLeetcode}
+                  linkingLeetcode={linkingLeetcode}
+                  linkError={linkError}
+                />
+              ) : loadingLC ? (
+                <div className="grid grid-cols-3 gap-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-24 bg-white/5 rounded-xl animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {/* Difficulty bars */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <DifficultyCard label="Easy" count={lcEasy} color="#22c55e" total={lcTotal} />
+                    <DifficultyCard label="Medium" count={lcMedium} color="#f59e0b" total={lcTotal} />
+                    <DifficultyCard label="Hard" count={lcHard} color="#ef4444" total={lcTotal} />
                   </div>
-                ) : (
-                  <>
-                    {/* Difficulty Breakdown */}
-                    <div className="mb-6">
-                      <Typography
-                        variant="subtitle2"
-                        sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600, mb: 2 }}
-                      >
-                        Difficulty Breakdown
-                      </Typography>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <DifficultyCard
-                          label="Easy"
-                          count={lcEasy}
-                          color="#22c55e"
-                          total={lcTotal}
-                        />
-                        <DifficultyCard
-                          label="Medium"
-                          count={lcMedium}
-                          color="#f59e0b"
-                          total={lcTotal}
-                        />
-                        <DifficultyCard
-                          label="Hard"
-                          count={lcHard}
-                          color="#ef4444"
-                          total={lcTotal}
-                        />
-                      </div>
+
+                  {/* Total progress */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-white/40">Total Solved</span>
+                      <span className="text-xs font-bold text-white">{lcTotal}</span>
                     </div>
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-green-500 via-amber-500 to-red-500 transition-all duration-500"
+                        style={{ width: `${Math.min(100, (lcTotal / 3000) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-                    {/* Tag Distribution */}
-                    {Object.keys(lcTags).length > 0 && (
-                      <div className="mb-6">
-                        <div className="flex items-center gap-2 mb-3">
-                          <CategoryIcon sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 20 }} />
-                          <Typography
-                            variant="subtitle2"
-                            sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}
-                          >
-                            Tag Distribution
-                          </Typography>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(lcTags)
-                            .sort(([, a], [, b]) => b - a)
-                            .map(([tag, count]) => (
-                              <Tooltip key={tag} title={`${count} problems`} arrow>
-                                <Chip
-                                  label={`${tag} (${count})`}
-                                  size="small"
-                                  sx={{
-                                    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-                                    color: '#a5b4fc',
-                                    fontWeight: 500,
-                                    fontSize: '0.75rem',
-                                    border: '1px solid rgba(99, 102, 241, 0.3)',
-                                  }}
-                                />
-                              </Tooltip>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Recent Submissions */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <HistoryIcon sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 20 }} />
-                        <Typography
-                          variant="subtitle2"
-                          sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}
-                        >
-                          Recent Submissions ({lcSubmissions.length})
-                        </Typography>
-                      </div>
-
-                      {lcSubmissions.length > 0 ? (
-                        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-                          {lcSubmissions.map((sub, idx) => (
-                            <motion.div
-                              key={idx}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: idx * 0.03 }}
-                              className="flex items-center justify-between py-2 px-3 rounded-lg"
-                              style={{
-                                background: 'rgba(255,255,255,0.03)',
-                                border: '1px solid rgba(255,255,255,0.05)',
-                              }}
-                            >
-                              <div className="flex-1 min-w-0 mr-3">
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    color: '#fff',
-                                    fontWeight: 500,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
-                                  {sub.title || sub.problemTitle || sub.name}
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  sx={{ color: 'rgba(255,255,255,0.4)' }}
-                                >
-                                  {sub.language || ''}{' '}
-                                  {sub.date || sub.submissionDate || sub.timestamp
-                                    ? `• ${new Date(
-                                        sub.date || sub.submissionDate || sub.timestamp
-                                      ).toLocaleDateString()}`
-                                    : ''}
-                                </Typography>
-                              </div>
-                              <Chip
-                                label={sub.difficulty || 'N/A'}
-                                size="small"
-                                sx={{
-                                  backgroundColor: getDifficultyColor(sub.difficulty),
-                                  color: '#fff',
-                                  fontWeight: 600,
-                                  fontSize: '0.7rem',
-                                }}
-                              />
-                            </motion.div>
-                          ))}
-                        </div>
-                      ) : (
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: 'rgba(255,255,255,0.5)',
-                            textAlign: 'center',
-                            py: 3,
+            {/* LC Tag Distribution */}
+            {user?.leetcodeUsername && Object.keys(lcTags).length > 0 && (
+              <div className="bg-[#151515] rounded-2xl p-5 border border-white/5">
+                <h2 className="text-[11px] font-bold text-white/40 tracking-wider uppercase mb-4">
+                  Tag Distribution
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(lcTags)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([tag, count]) => {
+                      const hue = (tag.charCodeAt(0) * 37 + tag.length * 53) % 360;
+                      const color = `hsl(${hue}, 70%, 65%)`;
+                      return (
+                        <span
+                          key={tag}
+                          className="px-3 py-1 rounded-lg text-xs border"
+                          style={{
+                            color,
+                            backgroundColor: `hsl(${hue}, 70%, 65%, 0.1)`,
+                            borderColor: `hsl(${hue}, 70%, 65%, 0.2)`,
                           }}
                         >
-                          No recent submissions found. Try syncing your profile.
-                        </Typography>
-                      )}
-                    </div>
-                  </>
-                )}
-              </>
+                          {tag} ({count})
+                        </span>
+                      );
+                    })}
+                </div>
+              </div>
             )}
-          </Box>
-        </motion.div>
-      </motion.div>
+          </div>
+
+          {/* RIGHT COLUMN (1/3 width) */}
+          <div className="space-y-6">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard
+                label="Rating"
+                value={cfRating ?? '—'}
+                icon={<Trophy className="w-4 h-4" />}
+                color="#fbbf24"
+              />
+              <StatCard
+                label="Problems"
+                value={lcTotal}
+                icon={<Code2 className="w-4 h-4" />}
+                color="#22c55e"
+              />
+              <StatCard
+                label="Streak"
+                value={currentStreak}
+                icon={<Flame className="w-4 h-4" />}
+                color="#f97316"
+              />
+              <StatCard
+                label="Score"
+                value={lcEasy + lcMedium * 2 + lcHard * 3}
+                icon={<Zap className="w-4 h-4" />}
+                color="#a855f7"
+              />
+            </div>
+
+            {/* Recent Submissions */}
+            <div className="bg-[#151515] rounded-2xl p-5 border border-white/5">
+              <h2 className="text-[11px] font-bold text-white/40 tracking-wider uppercase mb-4">
+                Recent Submissions
+              </h2>
+
+              {loadingLC ? (
+                <div className="space-y-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-14 bg-white/5 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : lcSubmissions.length > 0 ? (
+                <div className="space-y-2 max-h-[420px] overflow-y-auto">
+                  {lcSubmissions.map((sub, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-white/5 rounded-lg p-3 flex items-center justify-between"
+                    >
+                      <div className="flex-1 min-w-0 mr-2">
+                        <p className="text-sm text-white font-medium truncate">
+                          {sub.title || sub.problemTitle || sub.name}
+                        </p>
+                        <p className="text-[11px] text-white/40">
+                          {sub.language || ''}{' '}
+                          {(sub.date || sub.submissionDate || sub.timestamp) &&
+                            `• ${new Date(
+                              sub.date || sub.submissionDate || sub.timestamp
+                            ).toLocaleDateString()}`}
+                        </p>
+                      </div>
+                      <span
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold border ${getDifficultyClasses(
+                          sub.difficulty
+                        )}`}
+                      >
+                        {sub.difficulty || 'N/A'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-white/30 text-center py-4">
+                  No submissions yet.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-/** Difficulty card with count and progress bar */
-function DifficultyCard({ label, count, color, total }) {
-  const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+/** Stat card for sidebar grid */
+function StatCard({ label, value, icon, color }) {
   return (
-    <Box
-      sx={{
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 2,
-        p: 2,
-        position: 'relative',
-        overflow: 'hidden',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '3px',
-          background: color,
-        },
-      }}
-    >
-      <Typography variant="body2" sx={{ color, fontWeight: 600, mb: 0.5 }}>
+    <div className="bg-[#151515] rounded-2xl p-4 border border-white/5">
+      <div className="flex items-center gap-1.5 mb-2" style={{ color }}>
+        {icon}
+      </div>
+      <p className="text-[11px] font-bold text-white/40 tracking-wider uppercase">
         {label}
-      </Typography>
-      <Typography variant="h5" sx={{ color: '#fff', fontWeight: 700, mb: 1 }}>
-        {count}
-      </Typography>
-      <LinearProgress
-        variant="determinate"
-        value={percentage}
-        sx={{
-          height: 5,
-          borderRadius: 3,
-          backgroundColor: 'rgba(255,255,255,0.1)',
-          '& .MuiLinearProgress-bar': {
-            backgroundColor: color,
-            borderRadius: 3,
-          },
-        }}
-      />
-      <Typography
-        variant="caption"
-        sx={{ color: 'rgba(255,255,255,0.4)', mt: 0.5, display: 'block' }}
-      >
-        {percentage}% of total
-      </Typography>
-    </Box>
+      </p>
+      <p className="text-2xl font-bold text-white mt-1">{value}</p>
+    </div>
+  );
+}
+
+/** Difficulty breakdown card */
+function DifficultyCard({ label, count, color, total }) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+  return (
+    <div className="bg-white/[0.03] rounded-xl p-3 border border-white/5">
+      <p className="text-xs font-semibold mb-1" style={{ color }}>
+        {label}
+      </p>
+      <p className="text-xl font-bold text-white">{count}</p>
+      <div className="h-2 bg-white/5 rounded-full mt-2 overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, backgroundColor: color }}
+        />
+      </div>
+      <p className="text-[10px] text-white/30 mt-1">{pct}%</p>
+    </div>
+  );
+}
+
+/** Link LeetCode widget (orange accent NxtDevs style) */
+function LinkLeetCodeWidget({
+  leetcodeInput,
+  setLeetcodeInput,
+  handleLinkLeetcode,
+  linkingLeetcode,
+  linkError,
+}) {
+  return (
+    <div className="bg-[#1a1200] rounded-xl p-4 border border-orange-500/20">
+      <div className="flex items-center gap-2 mb-3">
+        <Activity className="w-4 h-4 text-orange-400" />
+        <span className="text-sm font-semibold text-orange-300">
+          Link LeetCode Account
+        </span>
+      </div>
+      <p className="text-xs text-white/50 mb-3">
+        Connect your LeetCode to see stats, tags, and submissions.
+      </p>
+
+      {linkError && (
+        <p className="text-xs text-red-400 mb-2">{linkError}</p>
+      )}
+
+      <form onSubmit={handleLinkLeetcode} className="flex gap-2">
+        <input
+          type="text"
+          value={leetcodeInput}
+          onChange={(e) => setLeetcodeInput(e.target.value)}
+          placeholder="LeetCode username"
+          disabled={linkingLeetcode}
+          className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-orange-500/50 disabled:opacity-50"
+        />
+        <button
+          type="submit"
+          disabled={linkingLeetcode}
+          className="bg-orange-500 text-black text-xs font-bold uppercase rounded-lg px-4 py-2 hover:bg-orange-400 transition-colors disabled:opacity-50"
+        >
+          {linkingLeetcode ? '...' : 'Connect'}
+        </button>
+      </form>
+    </div>
   );
 }
 

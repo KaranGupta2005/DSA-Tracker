@@ -86,7 +86,12 @@ function LoginPage() {
           password: formData.password,
         });
       }
-      router.push('/dashboard');
+      // Redirect based on role
+      if (activeTab === 1) {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err) {
       const message =
         err.response?.data?.error?.message ||

@@ -1,101 +1,142 @@
 import { useState } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-
-const navLinks = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Leaderboard', href: '/leaderboard' },
-  { label: 'Contests', href: '/contests' },
-  { label: 'Login', href: '/login' },
-];
+import { useRouter } from 'next/router';
+import { Menu, X } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 /**
- * Navbar component — sticky positioned with glassmorphism styling.
- * Mobile responsive with hamburger menu toggle.
- * Links: Dashboard, Leaderboard, Contests, Login.
+ * Navbar component — sticky, glassmorphism, auth-aware.
+ * Shows different links based on login state and role.
  */
 export default function Navbar() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const router = useRouter();
+  const active = router.pathname;
+  const { user, logout, isAuthenticated, isAdmin } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  };
+
+  // Build nav links based on auth state
+  const getNavLinks = () => {
+    if (isAuthenticated()) {
+      const links = [
+        { name: 'Home', href: '/' },
+        { name: 'Dashboard', href: '/dashboard' },
+        { name: 'Leaderboard', href: '/leaderboard' },
+        { name: 'Contests', href: '/contests' },
+        { name: 'Daily', href: '/daily' },
+      ];
+
+      if (isAdmin()) {
+        links.push({ name: 'Admin', href: '/admin' });
+      }
+
+      links.push({ name: 'Logout', href: '#', onClick: handleLogout });
+
+      return links;
+    }
+
+    // Not logged in
+    return [
+      { name: 'Home', href: '/' },
+      { name: 'Leaderboard', href: '/leaderboard' },
+      { name: 'Contests', href: '/contests' },
+      { name: 'Login', href: '/login' },
+    ];
+  };
+
+  const navLinks = getNavLinks();
+
+  const linkStyle =
+    'relative px-2 py-1 text-gray-300 hover:text-white after:block after:scale-x-0 after:bg-indigo-400 after:h-[2px] after:rounded-full after:transition-transform hover:after:scale-x-100 transition-all duration-200';
+  const activeStyle = 'text-white font-semibold scale-105';
 
   return (
-    <nav
-      className="fixed top-0 left-0 right-0 z-50 px-6 py-4"
-      style={{
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        backgroundColor: 'rgba(15, 23, 42, 0.75)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-      }}
-    >
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Logo / Brand */}
-        <Link href="/" className="text-white font-bold text-xl tracking-tight">
-          IEEE DTU DSA
+    <nav className="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800 shadow-lg">
+      <div className="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-3">
+          <img
+            src="/icons/logo.png"
+            alt="IEEE DTU DSA Tracker Logo"
+            className="h-12 w-auto object-contain"
+          />
+          <span className="text-white font-bold text-xl tracking-tight hidden sm:inline">
+            IEEE DTU DSA
+          </span>
         </Link>
 
-        {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-gray-300 hover:text-white transition-colors duration-200 text-sm font-medium"
-            >
-              {link.label}
-            </Link>
-          ))}
+        {/* Desktop Menu */}
+        <div className="hidden md:flex items-center gap-8 text-lg">
+          {navLinks.map(({ name, href, onClick }) =>
+            onClick ? (
+              <button
+                key={name}
+                onClick={onClick}
+                className={`${linkStyle} cursor-pointer bg-transparent border-none`}
+              >
+                {name}
+              </button>
+            ) : (
+              <Link
+                key={name}
+                href={href}
+                className={`${linkStyle} ${active === href ? activeStyle : ''}`}
+              >
+                {name}
+              </Link>
+            )
+          )}
         </div>
 
-        {/* Mobile Hamburger */}
-        <button
-          className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5"
-          onClick={() => setMobileMenuOpen((prev) => !prev)}
-          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={mobileMenuOpen}
-        >
-          <span
-            className={`block w-6 h-0.5 bg-white transition-transform duration-300 ${
-              mobileMenuOpen ? 'rotate-45 translate-y-2' : ''
-            }`}
-          />
-          <span
-            className={`block w-6 h-0.5 bg-white transition-opacity duration-300 ${
-              mobileMenuOpen ? 'opacity-0' : ''
-            }`}
-          />
-          <span
-            className={`block w-6 h-0.5 bg-white transition-transform duration-300 ${
-              mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''
-            }`}
-          />
-        </button>
+        {/* Mobile Menu Button */}
+        <div className="md:hidden">
+          <button
+            onClick={() => setMobileOpen((prev) => !prev)}
+            className="text-white"
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileOpen}
+          >
+            {mobileOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="md:hidden overflow-hidden"
-          >
-            <div className="flex flex-col gap-4 pt-4 pb-2">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-gray-300 hover:text-white transition-colors duration-200 text-sm font-medium px-2 py-1"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {mobileOpen && (
+        <div className="md:hidden bg-gray-900/95 text-white px-6 pb-4 space-y-3 border-t border-gray-800">
+          {navLinks.map(({ name, href, onClick }) =>
+            onClick ? (
+              <button
+                key={name}
+                onClick={() => {
+                  setMobileOpen(false);
+                  onClick();
+                }}
+                className="block transition-all duration-200 hover:text-indigo-400 bg-transparent border-none text-white cursor-pointer text-left"
+              >
+                {name}
+              </button>
+            ) : (
+              <Link
+                key={name}
+                href={href}
+                onClick={() => setMobileOpen(false)}
+                className={`block transition-all duration-200 ${
+                  active === href
+                    ? 'scale-105 font-bold text-indigo-400'
+                    : 'hover:text-indigo-400'
+                }`}
+              >
+                {name}
+              </Link>
+            )
+          )}
+        </div>
+      )}
     </nav>
   );
 }

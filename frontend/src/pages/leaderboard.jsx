@@ -1,20 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Box,
-  Typography,
-  Tabs,
-  Tab,
-  CircularProgress,
-  Alert,
-  useMediaQuery,
-} from '@mui/material';
-import {
-  EmojiEvents as TrophyIcon,
-  LocalFireDepartment as StreakIcon,
-  Code as CodeIcon,
-  TrendingUp as ScoreIcon,
-} from '@mui/icons-material';
+import { Trophy, Medal, TrendingUp, Target, RefreshCw, Activity, Flame } from 'lucide-react';
 import Boilerplate from '@/components/Boilerplate';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/utils/api';
@@ -26,12 +12,11 @@ const PERIODS = [
 ];
 
 function LeaderboardPage() {
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activePeriod, setActivePeriod] = useState(2); // default: all-time
-  const isMobile = useMediaQuery('(max-width:768px)');
+  const [activePeriod, setActivePeriod] = useState('all-time');
 
   const fetchLeaderboard = useCallback(async (period) => {
     setLoading(true);
@@ -56,302 +41,337 @@ function LeaderboardPage() {
   }, []);
 
   useEffect(() => {
-    fetchLeaderboard(PERIODS[activePeriod].value);
+    fetchLeaderboard(activePeriod);
   }, [activePeriod, fetchLeaderboard]);
 
-  const handlePeriodChange = (event, newValue) => {
-    setActivePeriod(newValue);
-  };
+  const currentUser = members.find(
+    (m) => m.codeforcesHandle === user?.codeforcesHandle
+  );
 
-  const getRankColor = (rank) => {
-    if (rank === 1) return '#FFD700';
-    if (rank === 2) return '#C0C0C0';
-    if (rank === 3) return '#CD7F32';
-    return 'rgba(255, 255, 255, 0.7)';
-  };
-
-  const getRankEmoji = (rank) => {
-    if (rank === 1) return '🥇';
-    if (rank === 2) return '🥈';
-    if (rank === 3) return '🥉';
-    return `#${rank}`;
+  const getRankIcon = (rank) => {
+    if (rank === 1) return <Trophy className="w-5 h-5" style={{ color: '#ffd60a' }} />;
+    if (rank === 2) return <Medal className="w-5 h-5" style={{ color: '#c0c0c0' }} />;
+    if (rank === 3) return <Medal className="w-5 h-5" style={{ color: '#cd7f32' }} />;
+    return null;
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      {/* Page Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-center mb-8"
-      >
-        <Typography
-          variant="h3"
-          component="h1"
-          sx={{ fontWeight: 800, color: '#fff', mb: 1 }}
-        >
-          <TrophyIcon sx={{ fontSize: 40, color: '#FFD700', mr: 1, verticalAlign: 'middle' }} />
-          Leaderboard
-        </Typography>
-        <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.6)' }}>
-          Compete, climb, and conquer — see how you stack up against fellow members.
-        </Typography>
-      </motion.div>
-
-      {/* Filter Tabs */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        <Box
-          sx={{
-            background: 'rgba(15, 23, 42, 0.6)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: 2,
-            mb: 4,
-            p: 1,
-            display: 'flex',
-            justifyContent: 'center',
-          }}
-        >
-          <Tabs
-            value={activePeriod}
-            onChange={handlePeriodChange}
-            variant="fullWidth"
-            aria-label="Leaderboard time period filter"
-            sx={{
-              width: '100%',
-              maxWidth: 400,
-              '& .MuiTab-root': {
-                color: 'rgba(255,255,255,0.5)',
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '0.95rem',
-                minHeight: 44,
-              },
-              '& .Mui-selected': { color: '#90caf9' },
-              '& .MuiTabs-indicator': { backgroundColor: '#1976d2', borderRadius: 2 },
-            }}
-          >
-            {PERIODS.map((p) => (
-              <Tab key={p.value} label={p.label} />
-            ))}
-          </Tabs>
-        </Box>
-      </motion.div>
-
-      {/* Error State */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Loading State */}
-      {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress sx={{ color: '#1976d2' }} />
-        </Box>
-      )}
-
-      {/* Empty State */}
-      {!loading && !error && members.length === 0 && (
+    <div className="min-h-screen bg-[#09090b] px-4 py-8 md:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto">
+        {/* Page Header */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-12"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
         >
-          <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-            No leaderboard data available for this period.
-          </Typography>
+          <div className="flex items-center gap-3 mb-2">
+            <Trophy className="w-7 h-7 text-[#ffd60a]" />
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Leaderboard</h1>
+          </div>
+          <p className="text-sm text-white/50">
+            Compete, climb, and conquer — see how you stack up against fellow members.
+          </p>
         </motion.div>
-      )}
 
-      {/* Leaderboard Table */}
-      {!loading && members.length > 0 && (
+        {/* Filter Tabs */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="flex gap-2 mb-6"
         >
-          {/* Table Header */}
-          {!isMobile && (
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: '60px 1fr 120px 100px 120px',
-                gap: 2,
-                px: 3,
-                py: 1.5,
-                mb: 1,
-              }}
+          {PERIODS.map((p) => (
+            <button
+              key={p.value}
+              onClick={() => setActivePeriod(p.value)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                activePeriod === p.value
+                  ? 'bg-orange-500/10 border-orange-500/30 text-orange-400'
+                  : 'bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white/80'
+              }`}
             >
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
-                Rank
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
-                Member
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600, textAlign: 'center' }}>
-                Problems
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600, textAlign: 'center' }}>
-                Streak
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)', fontWeight: 600, textAlign: 'center' }}>
-                Score
-              </Typography>
-            </Box>
-          )}
+              {p.label}
+            </button>
+          ))}
+        </motion.div>
 
-          {/* Rows */}
-          <AnimatePresence mode="popLayout">
-            {members.map((member, index) => {
-              const rank = member.rank || index + 1;
-              return (
-                <motion.div
-                  key={member.codeforcesHandle || member._id || index}
-                  layoutId={member.codeforcesHandle || member._id || `member-${index}`}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
+        {/* Current User Stats Banner */}
+        {!loading && !error && currentUser && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+            className="mb-6"
+          >
+            <div className="relative rounded-2xl p-[1px] bg-gradient-to-r from-orange-500/40 via-orange-400/20 to-transparent">
+              <div className="bg-[#151515] rounded-2xl p-4 md:p-5">
+                <p className="text-[11px] font-bold text-white/40 tracking-wider uppercase mb-3">
+                  Your Position
+                </p>
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center">
+                      {getRankIcon(currentUser.rank) || (
+                        <span className="text-sm font-bold text-orange-400">
+                          #{currentUser.rank}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold">{currentUser.codeforcesHandle}</p>
+                      <p className="text-xs text-white/40">Rank #{currentUser.rank} of {members.length}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <div className="flex items-center gap-1 text-white/50 mb-0.5">
+                        <Target className="w-3.5 h-3.5" />
+                        <span className="text-[11px] uppercase">Problems</span>
+                      </div>
+                      <p className="text-lime-400 font-bold tabular-nums">{currentUser.totalProblems ?? 0}</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center gap-1 text-white/50 mb-0.5">
+                        <Flame className="w-3.5 h-3.5" />
+                        <span className="text-[11px] uppercase">Streak</span>
+                      </div>
+                      <p className="text-orange-400 font-bold tabular-nums">{currentUser.currentStreak ?? 0}</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center gap-1 text-white/50 mb-0.5">
+                        <Activity className="w-3.5 h-3.5" />
+                        <span className="text-[11px] uppercase">Score</span>
+                      </div>
+                      <p className="text-lime-400 font-bold tabular-nums">{currentUser.activityScore ?? 0}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center py-16"
+          >
+            <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+              <RefreshCw className="w-6 h-6 text-red-400" />
+            </div>
+            <p className="text-white/60 text-sm mb-4 text-center">{error}</p>
+            <button
+              onClick={() => fetchLeaderboard(activePeriod)}
+              className="px-5 py-2.5 bg-white text-black font-medium text-sm rounded-lg hover:bg-white/90 transition-colors"
+            >
+              Retry
+            </button>
+          </motion.div>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="bg-[#151515] rounded-2xl border border-white/5 overflow-hidden">
+            <div className="p-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-4 py-3 border-b border-[#222] last:border-0"
                 >
-                  {isMobile ? (
-                    /* Mobile Card Layout */
-                    <Box
-                      sx={{
-                        background: rank <= 3
-                          ? 'rgba(25, 118, 210, 0.08)'
-                          : 'rgba(15, 23, 42, 0.6)',
-                        backdropFilter: 'blur(12px)',
-                        border: `1px solid ${rank <= 3 ? 'rgba(25, 118, 210, 0.2)' : 'rgba(255, 255, 255, 0.06)'}`,
-                        borderRadius: 2,
-                        p: 2,
-                        mb: 1.5,
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                          <Typography
-                            variant="h6"
-                            sx={{ color: getRankColor(rank), fontWeight: 700, minWidth: 36 }}
-                          >
-                            {getRankEmoji(rank)}
-                          </Typography>
-                          <Box>
-                            <Typography variant="body1" sx={{ color: '#fff', fontWeight: 600 }}>
-                              {member.codeforcesHandle}
-                            </Typography>
-                            {member.leetcodeUsername && (
-                              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
-                                LC: {member.leetcodeUsername}
-                              </Typography>
-                            )}
-                          </Box>
-                        </Box>
-                        <Box sx={{ textAlign: 'right' }}>
-                          <Typography variant="body2" sx={{ color: '#90caf9', fontWeight: 700 }}>
-                            <ScoreIcon sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
-                            {member.activityScore ?? 0}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-around' }}>
-                        <Box sx={{ textAlign: 'center' }}>
-                          <CodeIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.4)' }} />
-                          <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.6)' }}>
-                            {member.totalProblems ?? 0} solved
-                          </Typography>
-                        </Box>
-                        <Box sx={{ textAlign: 'center' }}>
-                          <StreakIcon sx={{ fontSize: 16, color: '#ff9800' }} />
-                          <Typography variant="caption" sx={{ display: 'block', color: 'rgba(255,255,255,0.6)' }}>
-                            {member.currentStreak ?? 0} days
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </Box>
-                  ) : (
-                    /* Desktop Row Layout */
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: '60px 1fr 120px 100px 120px',
-                        gap: 2,
-                        alignItems: 'center',
-                        px: 3,
-                        py: 2,
-                        mb: 1,
-                        background: rank <= 3
-                          ? 'rgba(25, 118, 210, 0.06)'
-                          : 'rgba(15, 23, 42, 0.5)',
-                        backdropFilter: 'blur(12px)',
-                        border: `1px solid ${rank <= 3 ? 'rgba(25, 118, 210, 0.15)' : 'rgba(255, 255, 255, 0.05)'}`,
-                        borderRadius: 2,
-                        transition: 'background 0.2s ease',
-                        '&:hover': {
-                          background: 'rgba(25, 118, 210, 0.1)',
-                          border: '1px solid rgba(25, 118, 210, 0.25)',
-                        },
-                      }}
+                  <div className="w-8 h-8 rounded-full bg-white/10 animate-pulse" />
+                  <div className="flex-1 h-4 bg-white/10 animate-pulse rounded" />
+                  <div className="w-16 h-4 bg-white/10 animate-pulse rounded hidden md:block" />
+                  <div className="w-14 h-4 bg-white/10 animate-pulse rounded hidden md:block" />
+                  <div className="w-16 h-4 bg-white/10 animate-pulse rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && members.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-16"
+          >
+            <Trophy className="w-10 h-10 text-white/20 mx-auto mb-3" />
+            <p className="text-white/40 text-sm">
+              No leaderboard data available for this period.
+            </p>
+          </motion.div>
+        )}
+
+        {/* Leaderboard Table */}
+        {!loading && !error && members.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className="bg-[#151515] rounded-2xl border border-white/5 overflow-hidden"
+          >
+            {/* Section Header */}
+            <div className="px-4 md:px-5 pt-4 pb-2">
+              <p className="text-[11px] font-bold text-white/40 tracking-wider uppercase">
+                Rankings
+              </p>
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden md:block">
+              {/* Table Header */}
+              <div className="grid grid-cols-[60px_1fr_100px_90px_100px] gap-3 px-5 py-2.5 border-b border-[#222]">
+                <span className="text-xs font-medium text-white/50 uppercase">Rank</span>
+                <span className="text-xs font-medium text-white/50 uppercase">Member</span>
+                <span className="text-xs font-medium text-white/50 uppercase text-center">Problems</span>
+                <span className="text-xs font-medium text-white/50 uppercase text-center">Streak</span>
+                <span className="text-xs font-medium text-white/50 uppercase text-right">Score</span>
+              </div>
+
+              {/* Table Body */}
+              <AnimatePresence mode="popLayout">
+                {members.map((member, index) => {
+                  const rank = member.rank || index + 1;
+                  const isCurrentUser = member.codeforcesHandle === user?.codeforcesHandle;
+
+                  return (
+                    <motion.div
+                      key={member.codeforcesHandle || member._id || index}
+                      layoutId={member.codeforcesHandle || member._id || `member-${index}`}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      transition={{ duration: 0.25, delay: index * 0.03 }}
+                      className={`grid grid-cols-[60px_1fr_100px_90px_100px] gap-3 px-5 py-3 items-center border-b border-[#222] last:border-0 transition-colors hover:bg-white/5 ${
+                        isCurrentUser ? 'bg-orange-500/10' : ''
+                      }`}
                     >
                       {/* Rank */}
-                      <Typography
-                        variant="h6"
-                        sx={{ color: getRankColor(rank), fontWeight: 700 }}
-                      >
-                        {getRankEmoji(rank)}
-                      </Typography>
-
-                      {/* Handle(s) */}
-                      <Box>
-                        <Typography variant="body1" sx={{ color: '#fff', fontWeight: 600 }}>
-                          {member.codeforcesHandle}
-                        </Typography>
-                        {member.leetcodeUsername && (
-                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.4)' }}>
-                            LC: {member.leetcodeUsername}
-                          </Typography>
+                      <div className="flex items-center gap-1.5">
+                        {getRankIcon(rank) || (
+                          <span className="text-sm font-medium text-white/60 tabular-nums">
+                            #{rank}
+                          </span>
                         )}
-                      </Box>
+                      </div>
 
-                      {/* Problems Solved */}
-                      <Typography
-                        variant="body2"
-                        sx={{ color: 'rgba(255,255,255,0.8)', textAlign: 'center', fontWeight: 500 }}
-                      >
-                        <CodeIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle', color: 'rgba(255,255,255,0.4)' }} />
+                      {/* Member */}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-white truncate">
+                          {member.codeforcesHandle}
+                          {isCurrentUser && (
+                            <span className="ml-2 text-[10px] font-bold text-orange-400 uppercase">
+                              You
+                            </span>
+                          )}
+                        </p>
+                        {member.leetcodeUsername && (
+                          <p className="text-xs text-white/30 truncate">
+                            LC: {member.leetcodeUsername}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Problems */}
+                      <p className="text-sm text-lime-400 font-bold tabular-nums text-center">
                         {member.totalProblems ?? 0}
-                      </Typography>
+                      </p>
 
                       {/* Streak */}
-                      <Typography
-                        variant="body2"
-                        sx={{ color: '#ff9800', textAlign: 'center', fontWeight: 500 }}
-                      >
-                        <StreakIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
-                        {member.currentStreak ?? 0}
-                      </Typography>
+                      <div className="flex items-center justify-center gap-1">
+                        <Flame className="w-3.5 h-3.5 text-orange-400" />
+                        <span className="text-sm font-medium text-white/70 tabular-nums">
+                          {member.currentStreak ?? 0}
+                        </span>
+                      </div>
 
-                      {/* Activity Score */}
-                      <Typography
-                        variant="body1"
-                        sx={{ color: '#90caf9', textAlign: 'center', fontWeight: 700 }}
-                      >
+                      {/* Score */}
+                      <p className="text-sm text-lime-400 font-bold tabular-nums text-right">
                         {member.activityScore ?? 0}
-                      </Typography>
-                    </Box>
-                  )}
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </motion.div>
-      )}
+                      </p>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+
+            {/* Mobile Card Layout */}
+            <div className="md:hidden px-3 pb-3">
+              <AnimatePresence mode="popLayout">
+                {members.map((member, index) => {
+                  const rank = member.rank || index + 1;
+                  const isCurrentUser = member.codeforcesHandle === user?.codeforcesHandle;
+
+                  return (
+                    <motion.div
+                      key={member.codeforcesHandle || member._id || `mobile-${index}`}
+                      layoutId={`mobile-${member.codeforcesHandle || member._id || index}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.25, delay: index * 0.03 }}
+                      className={`rounded-xl border p-3 mb-2 last:mb-0 transition-colors ${
+                        isCurrentUser
+                          ? 'bg-orange-500/10 border-orange-500/20'
+                          : 'bg-white/[0.02] border-white/5 hover:bg-white/5'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                            {getRankIcon(rank) || (
+                              <span className="text-xs font-bold text-white/50">#{rank}</span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-white truncate">
+                              {member.codeforcesHandle}
+                              {isCurrentUser && (
+                                <span className="ml-1.5 text-[10px] font-bold text-orange-400 uppercase">
+                                  You
+                                </span>
+                              )}
+                            </p>
+                            {member.leetcodeUsername && (
+                              <p className="text-xs text-white/30 truncate">
+                                LC: {member.leetcodeUsername}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lime-400 font-bold text-sm tabular-nums">
+                            {member.activityScore ?? 0}
+                          </p>
+                          <p className="text-[10px] text-white/30 uppercase">Score</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 pt-2 border-t border-white/5">
+                        <div className="flex items-center gap-1.5">
+                          <Target className="w-3.5 h-3.5 text-white/30" />
+                          <span className="text-xs text-white/50">
+                            {member.totalProblems ?? 0} solved
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Flame className="w-3.5 h-3.5 text-orange-400/60" />
+                          <span className="text-xs text-white/50">
+                            {member.currentStreak ?? 0} day streak
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }

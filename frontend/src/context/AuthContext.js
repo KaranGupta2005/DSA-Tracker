@@ -31,8 +31,9 @@ export function AuthProvider({ children }) {
   // Login: store token and user data
   const login = async (credentials) => {
     const response = await api.post('/auth/login', credentials);
-    const { token: newToken, user: userData } = response.data;
+    const { token: newToken, member } = response.data;
 
+    const userData = { ...member, role: member.role || 'member' };
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setToken(newToken);
@@ -44,8 +45,9 @@ export function AuthProvider({ children }) {
   // Admin login
   const adminLogin = async (credentials) => {
     const response = await api.post('/auth/admin/login', credentials);
-    const { token: newToken, user: userData } = response.data;
+    const { token: newToken, admin } = response.data;
 
+    const userData = { ...admin, role: 'admin' };
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setToken(newToken);

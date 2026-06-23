@@ -51,8 +51,13 @@ app.use('/api/session-prep', sessionPrepRoutes);
 // Global error handler (must be last middleware)
 app.use(errorHandler);
 
+const { seedHeadAdmin } = require('./utils/seedAdmin');
+
 // Connect to Database and start server
-connectDB().then(() => {
+connectDB().then(async () => {
+  // Seed Head Admin on startup if not exists
+  await seedHeadAdmin();
+
   if (require.main === module) {
     app.listen(config.port, () => {
       console.log(`Server is running on port ${config.port}`);

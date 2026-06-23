@@ -1,63 +1,50 @@
-import { styled } from '@mui/material/styles';
-import Button from '@mui/material/Button';
+import { motion } from 'framer-motion';
+import MuiButton from '@mui/material/Button';
 import Link from 'next/link';
 
-const PrimaryButton = styled(Button)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-  color: '#ffffff',
-  padding: '12px 32px',
-  fontSize: '1rem',
-  fontWeight: 600,
-  borderRadius: '8px',
-  textTransform: 'none',
-  boxShadow: '0 4px 14px rgba(25, 118, 210, 0.4)',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    background: 'linear-gradient(135deg, #1565c0 0%, #0d47a1 100%)',
-    boxShadow: '0 6px 20px rgba(25, 118, 210, 0.6)',
-    transform: 'translateY(-2px)',
-  },
-}));
-
-const SecondaryButton = styled(Button)(({ theme }) => ({
-  background: 'transparent',
-  color: '#1976d2',
-  padding: '12px 32px',
-  fontSize: '1rem',
-  fontWeight: 600,
-  borderRadius: '8px',
-  textTransform: 'none',
-  border: '2px solid #1976d2',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    background: 'rgba(25, 118, 210, 0.08)',
-    borderColor: '#1565c0',
-    color: '#1565c0',
-    transform: 'translateY(-2px)',
-  },
-}));
+const MotionButton = motion.create(MuiButton);
 
 /**
- * StyledButton component with primary and secondary variants.
- * Primary variant navigates to /login.
- * Secondary variant navigates to /leaderboard.
+ * StyledButton — replicates Model_NextJs-project StyledButton exactly.
+ * Framer Motion-wrapped MUI Button with primary/secondary variants.
+ * Primary: solid indigo background. Secondary: indigo border outline.
+ * Both have whileTap and whileHover animations.
  *
- * @param {object} props
- * @param {'primary' | 'secondary'} props.variant - Button variant
- * @param {string} [props.href] - Override default navigation target
- * @param {React.ReactNode} props.children - Button content
+ * Primary variant defaults to /login, secondary defaults to /leaderboard.
  */
-export default function StyledButton({ variant = 'primary', href, children, ...props }) {
+export default function StyledButton({
+  children,
+  variant = 'primary',
+  href,
+  ...props
+}) {
   const defaultHref = variant === 'primary' ? '/login' : '/leaderboard';
   const resolvedHref = href || defaultHref;
 
-  const ButtonComponent = variant === 'primary' ? PrimaryButton : SecondaryButton;
+  const base =
+    '!px-6 !py-3 !rounded-xl !text-lg font-semibold transition-all duration-300';
+
+  const styles =
+    variant === 'primary'
+      ? '!bg-indigo-600 !text-white shadow-md hover:!bg-indigo-700'
+      : '!border-2 !border-indigo-400 !text-indigo-300 hover:!bg-indigo-500 hover:!text-white';
+
+  const hoverShadow =
+    variant === 'primary'
+      ? '0px 8px 25px rgba(99,102,241,0.6)'
+      : '0px 8px 25px rgba(129,140,248,0.6)';
 
   return (
     <Link href={resolvedHref} passHref legacyBehavior>
-      <ButtonComponent component="a" {...props}>
+      <MotionButton
+        component="a"
+        whileTap={{ scale: 0.9 }}
+        whileHover={{ scale: 1.07, boxShadow: hoverShadow }}
+        className={`${base} ${styles}`}
+        {...props}
+      >
         {children}
-      </ButtonComponent>
+      </MotionButton>
     </Link>
   );
 }
