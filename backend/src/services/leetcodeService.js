@@ -297,6 +297,7 @@ const syncProfile = async (username) => {
     stats: null,
     tags: null,
     recentSubmissions: null,
+    submissionCalendar: null,
     streak: null,
     errors: [],
   };
@@ -325,6 +326,7 @@ const syncProfile = async (username) => {
   // Fetch submission calendar and calculate streak
   try {
     const calendar = await getSubmissionCalendar(username);
+    result.submissionCalendar = calendar;
     result.streak = calculateStreak(calendar);
   } catch (err) {
     result.errors.push(`streak: ${err.message}`);

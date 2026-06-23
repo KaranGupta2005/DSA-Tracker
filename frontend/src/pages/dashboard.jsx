@@ -166,6 +166,10 @@ function DashboardPage() {
           tags: raw.tags || {},
           totalAvailable: raw.stats?.total ?? raw.totalAvailable ?? 3972,
         });
+        // Store submission calendar for heatmap
+        if (raw.submissionCalendar) {
+          setLcCalendar(raw.submissionCalendar);
+        }
       }
       if (lbRes?.data) {
         const members = lbRes.data.leaderboard || lbRes.data;
@@ -175,6 +179,10 @@ function DashboardPage() {
             )
           : null;
         setLeaderboardData(myEntry);
+      }
+      // Fetch CF contest history
+      if (user.codeforcesHandle) {
+        // Moved to profile page
       }
     } catch {
       setError('Failed to load dashboard data. Please try again.');

@@ -53,6 +53,7 @@ function ProfilePage() {
   // LeetCode state
   const [lcData, setLcData] = useState(null);
   const [lcSubmissions, setLcSubmissions] = useState([]);
+  const [lcCalendar, setLcCalendar] = useState({});
   const [loadingLC, setLoadingLC] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
@@ -105,9 +106,10 @@ function ProfilePage() {
     if (!user?.leetcodeUsername) return;
     setLoadingLC(true);
     try {
-      const [statsRes, subsRes] = await Promise.all([
+      const [statsRes, subsRes, syncRes] = await Promise.all([
         api.get(`/leetcode/stats/${user.leetcodeUsername}`).catch(() => null),
         api.get(`/leetcode/submissions/${user.leetcodeUsername}`).catch(() => null),
+        api.get(`/leetcode/sync/${user.leetcodeUsername}`).catch(() => null),
       ]);
       if (statsRes?.data) {
         const raw = statsRes.data.data || statsRes.data;
@@ -124,6 +126,13 @@ function ProfilePage() {
           ? subsRes.data
           : subsRes.data.submissions || subsRes.data.recentSubmissions || [];
         setLcSubmissions(subs.slice(0, 15));
+      }
+      // Get calendar from sync response
+      if (syncRes?.data) {
+        const raw = syncRes.data.data || syncRes.data;
+        if (raw.submissionCalendar) {
+          setLcCalendar(raw.submissionCalendar);
+        }
       }
     } catch {
       // handled gracefully
@@ -277,6 +286,91 @@ function ProfilePage() {
 
         {/* Spacer for avatar overlap */}
         <div className="h-6" />
+
+        {/* ===== GRAPHS SECTION ===== */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* CF Rating Graph */}
+          {cfContests.length > 0 && (
+            <div className="bg-[#151515] rounded-2xl border border-white/5 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[11px] font-bold text-white/40 tracking-wider uppercase">CF Rating History</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white/40">{cfRank}</span>
+                  <span className="text-sm font-bold text-cyan-400">{cfRating || '—'}</span>
+                </div>
+              </div>
+              <div className="flex items-end gap-[3px] h-28">
+                {cfContests.map((contest, i) => {
+                  const ratings = cfContests.map(c => c.newRating || 0);
+                  const min = Math.min(...ratings) - 50;
+                  const max = Math.max(...ratings) + 50;
+                  const height = max > min ? ((contest.newRating - min) / (max - min)) * 100 : 50;
+                  const change = contest.newRating - contest.oldRating;
+                  return (
+                    <div
+                      key={i}
+                      className="flex-1 rounded-t-sm transition-all hover:opacity-80 cursor-pointer"
+                      style={{
+                        height: `${Math.max(8, height)}%`,
+                        backgroundColor: change >= 0 ? '#84cc16' : '#ef4444',
+                        opacity: 0.4 + (i / cfContests.length) * 0.6,
+                      }}
+                      title={`${contest.contestName || 'Contest'}: ${contest.newRating} (${change >= 0 ? '+' : ''}${change})`}
+                    />
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-white/30 mt-2">{cfContests.length} contests</p>
+            </div>
+          )}
+
+          {/* LC Submission Heatmap */}
+          {user?.leetcodeUsername && Object.keys(lcCalendar).length > 0 && (
+            <div className="bg-[#151515] rounded-2xl border border-white/5 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[11px] font-bold text-white/40 tracking-wider uppercase">
+                  LC Submissions
+                </p>
+                <p className="text-xs text-white/50">
+                  {Object.values(lcCalendar).reduce((s, v) => s + v, 0)} in past year
+                </p>
+              </div>
+              <div className="grid grid-rows-7 grid-flow-col gap-[2px] overflow-x-auto pb-1">
+                {(() => {
+                  const today = new Date();
+                  const cells = [];
+                  for (let i = 364; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setDate(date.getDate() - i);
+                    const ts = Math.floor(date.setHours(0, 0, 0, 0) / 1000).toString();
+                    const count = lcCalendar[ts] || 0;
+                    const intensity = count === 0 ? 'bg-white/[0.04]' :
+                      count <= 2 ? 'bg-[#0e4429]' :
+                      count <= 5 ? 'bg-[#006d32]' :
+                      count <= 8 ? 'bg-[#26a641]' : 'bg-[#39d353]';
+                    cells.push(
+                      <div
+                        key={i}
+                        className={`w-[10px] h-[10px] rounded-[2px] ${intensity}`}
+                        title={`${date.toLocaleDateString()}: ${count} submissions`}
+                      />
+                    );
+                  }
+                  return cells;
+                })()}
+              </div>
+              <div className="flex items-center gap-2 mt-2 justify-end">
+                <span className="text-[9px] text-white/30">Less</span>
+                <div className="w-[8px] h-[8px] rounded-[2px] bg-white/[0.04]" />
+                <div className="w-[8px] h-[8px] rounded-[2px] bg-[#0e4429]" />
+                <div className="w-[8px] h-[8px] rounded-[2px] bg-[#006d32]" />
+                <div className="w-[8px] h-[8px] rounded-[2px] bg-[#26a641]" />
+                <div className="w-[8px] h-[8px] rounded-[2px] bg-[#39d353]" />
+                <span className="text-[9px] text-white/30">More</span>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* ===== 2-COLUMN LAYOUT ===== */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
