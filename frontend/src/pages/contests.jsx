@@ -375,6 +375,31 @@ function ContestsPage() {
         >
           {subscribed ? 'Subscribed' : 'Subscribe to notifications'}
         </Button>
+
+        {subscribed && (
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={async () => {
+              try {
+                await api.post('/contests/test-notification');
+                setSnackbar({ open: true, message: 'Test notification sent! Check your notifications.', severity: 'success' });
+              } catch (err) {
+                setSnackbar({ open: true, message: err.response?.data?.error?.message || 'Failed to send test notification.', severity: 'error' });
+              }
+            }}
+            sx={{
+              color: '#fff',
+              borderColor: 'rgba(255,255,255,0.2)',
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              ml: 1,
+            }}
+          >
+            Test 🔔
+          </Button>
+        )}
       </motion.div>
 
       {/* Staleness Warning */}
