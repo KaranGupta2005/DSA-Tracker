@@ -1,11 +1,6 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 
-/**
- * Authentication middleware that verifies JWT tokens.
- * Attaches decoded user info (memberId, role, status) to req.user.
- * Denies access to pending members on protected routes.
- */
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
 

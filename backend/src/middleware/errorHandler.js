@@ -1,8 +1,3 @@
-/**
- * Centralized error handler middleware.
- * Formats all errors into the standard JSON structure.
- */
-
 // Known error codes mapped to HTTP status codes
 const ERROR_STATUS_MAP = {
   AUTH_REQUIRED: 401,

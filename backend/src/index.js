@@ -5,6 +5,8 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./db/db');
 const config = require('./config');
+const { errorHandler } = require('./middleware/errorHandler');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -19,6 +21,12 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.json({ message: 'IEEE DTU DSA Tracker API is running' });
 });
+
+// Routes
+app.use('/api/auth', authRoutes);
+
+// Error handler (must be last)
+app.use(errorHandler);
 
 // Connect to Database and start server
 connectDB().then(() => {
