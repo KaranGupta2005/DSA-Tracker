@@ -59,8 +59,7 @@ router.post('/broadcast', authMiddleware, adminMiddleware, async (req, res, next
         sent++;
       } else {
         failed++;
-        // Remove invalid subscriptions
-        await Member.findByIdAndUpdate(member._id, { pushSubscription: null });
+        // Don't auto-remove subscriptions — they may be temporarily unreachable
       }
     }
 

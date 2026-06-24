@@ -203,8 +203,8 @@ function AdminDashboardPage() {
     }
 
     const trimmedIndex = problemIndex.trim().toUpperCase();
-    if (!trimmedIndex || !/^[A-Z][0-9]?$/.test(trimmedIndex)) {
-      setFormError('Problem index must be a letter (A-Z) optionally followed by a digit.');
+    if (!trimmedIndex || !/^[A-Z][0-9]?[0-9]?$/.test(trimmedIndex)) {
+      setFormError('Problem index must be like A, B, C, A1, B2, etc.');
       return false;
     }
 
@@ -465,12 +465,22 @@ function AdminDashboardPage() {
               {problemPlatform === 'codeforces' ? (
                 <>
                   <TextField
-                    label="Contest ID"
-                    placeholder="e.g. 1900"
+                    label="Contest ID or CF URL"
+                    placeholder="e.g. 1900 or paste CF URL"
                     value={contestId}
-                    onChange={(e) => { setContestId(e.target.value); setFormError(''); }}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // Auto-parse CF URL: https://codeforces.com/contest/1900/problem/C
+                      const urlMatch = val.match(/codeforces\.com\/contest\/(\d+)\/problem\/([A-Za-z]\d?)/);
+                      if (urlMatch) {
+                        setContestId(urlMatch[1]);
+                        setProblemIndex(urlMatch[2].toUpperCase());
+                      } else {
+                        setContestId(val);
+                      }
+                      setFormError('');
+                    }}
                     size="small"
-                    type="number"
                     required
                     sx={{ minWidth: 150 }}
                     slotProps={{
