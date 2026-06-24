@@ -26,8 +26,8 @@ function DailyProblemPage() {
   const [history, setHistory] = useState([]);
   const [loadingToday, setLoadingToday] = useState(true);
   const [loadingHistory, setLoadingHistory] = useState(true);
-  const [checking, setChecking] = useState(false);
-  const [solvedStatus, setSolvedStatus] = useState(null); // null | true | false
+  const [checking, setChecking] = useState({});  // { [problemId]: true/false }
+  const [solvedStatus, setSolvedStatus] = useState({});  // { [problemId]: true/false/null }
   const [error, setError] = useState('');
   const [checkError, setCheckError] = useState('');
 
@@ -61,17 +61,6 @@ function DailyProblemPage() {
 
   // Fetch history (last 7 problems)
   useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const response = await api.get('/daily/history');
-        setHistory(response.data);
-      } catch {
-        // Silently fail for history — today's problem is more important
-      } finally {
-        setLoadingHistory(false);
-      }
-    };
-
     fetchHistory();
   }, []);
 
@@ -80,49 +69,49 @@ function DailyProblemPage() {
     return problem?.platform === 'leetcode' || problem?.contestId === 0;
   };
 
-  // Check if the member solved today's problem (Codeforces auto-check)
-  const handleCheckSolved = async () => {
+  // Check if the member solved a CF problem (per-problem)
+  const handleCheckSolved = async (problemId) => {
     if (!user?.codeforcesHandle) {
       setCheckError('No Codeforces handle found. Please update your profile.');
       return;
     }
-
-    setChecking(true);
+    setChecking(prev => ({ ...prev, [problemId]: true }));
     setCheckError('');
-    setSolvedStatus(null);
-
     try {
       const response = await api.get(`/daily/check/${user.codeforcesHandle}`);
-      setSolvedStatus(response.data.solved);
+      setSolvedStatus(prev => ({ ...prev, [problemId]: response.data.solved }));
+      if (response.data.solved) fetchHistory(); // Refresh history to show green tick
     } catch (err) {
-      const message =
-        err.response?.data?.error?.message ||
-        err.response?.data?.message ||
-        'Failed to check submission status';
+      const message = err.response?.data?.error?.message || err.response?.data?.message || 'Failed to check submission status';
       setCheckError(message);
     } finally {
-      setChecking(false);
+      setChecking(prev => ({ ...prev, [problemId]: false }));
     }
   };
 
-  // Self-report completion for LeetCode problems
-  const handleSelfComplete = async () => {
-    setChecking(true);
+  // Self-report completion for LeetCode problems (per-problem)
+  const handleSelfComplete = async (problemId) => {
+    setChecking(prev => ({ ...prev, [problemId]: true }));
     setCheckError('');
-    setSolvedStatus(null);
-
     try {
       const response = await api.post('/daily/self-complete');
-      setSolvedStatus(response.data.solved);
+      setSolvedStatus(prev => ({ ...prev, [problemId]: response.data.solved }));
+      if (response.data.solved) fetchHistory(); // Refresh history to show green tick
     } catch (err) {
-      const message =
-        err.response?.data?.error?.message ||
-        err.response?.data?.message ||
-        'Failed to mark as completed';
+      const message = err.response?.data?.error?.message || err.response?.data?.message || 'Failed to mark as completed';
       setCheckError(message);
     } finally {
-      setChecking(false);
+      setChecking(prev => ({ ...prev, [problemId]: false }));
     }
+  };
+
+  // Fetch history
+  const fetchHistory = async () => {
+    try {
+      const response = await api.get('/daily/history');
+      setHistory(response.data || []);
+    } catch {}
+    finally { setLoadingHistory(false); }
   };
 
   // Get rating color based on Codeforces rating ranges
@@ -286,41 +275,41 @@ function DailyProblemPage() {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                 {isLeetCode(problem) ? (
                   <motion.button
-                    onClick={handleSelfComplete}
-                    disabled={checking || solvedStatus === true}
-                    whileHover={{ scale: checking || solvedStatus === true ? 1 : 1.02 }}
-                    whileTap={{ scale: checking || solvedStatus === true ? 1 : 0.98 }}
+                    onClick={() => handleSelfComplete(problem._id || pIdx)}
+                    disabled={checking[problem._id || pIdx] || solvedStatus[problem._id || pIdx] === true}
+                    whileHover={{ scale: checking[problem._id || pIdx] || solvedStatus[problem._id || pIdx] === true ? 1 : 1.02 }}
+                    whileTap={{ scale: checking[problem._id || pIdx] || solvedStatus[problem._id || pIdx] === true ? 1 : 0.98 }}
                     className="py-2.5 px-5 rounded-lg font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
-                      background: solvedStatus === true ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                      border: 'none', cursor: checking || solvedStatus === true ? 'not-allowed' : 'pointer',
+                      background: solvedStatus[problem._id || pIdx] === true ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                      border: 'none', cursor: checking[problem._id || pIdx] || solvedStatus[problem._id || pIdx] === true ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    {checking ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : solvedStatus === true ? 'Completed ✓' : 'Mark as completed'}
+                    {checking[problem._id || pIdx] ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : solvedStatus[problem._id || pIdx] === true ? 'Completed ✓' : 'Mark as completed'}
                   </motion.button>
                 ) : (
                   <motion.button
-                    onClick={handleCheckSolved}
-                    disabled={checking}
-                    whileHover={{ scale: checking ? 1 : 1.02 }}
-                    whileTap={{ scale: checking ? 1 : 0.98 }}
+                    onClick={() => handleCheckSolved(problem._id || pIdx)}
+                    disabled={checking[problem._id || pIdx]}
+                    whileHover={{ scale: checking[problem._id || pIdx] ? 1 : 1.02 }}
+                    whileTap={{ scale: checking[problem._id || pIdx] ? 1 : 0.98 }}
                     className="py-2.5 px-5 rounded-lg font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                       background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-                      border: 'none', cursor: checking ? 'not-allowed' : 'pointer',
+                      border: 'none', cursor: checking[problem._id || pIdx] ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    {checking ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Check if I solved it'}
+                    {checking[problem._id || pIdx] ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Check if I solved it'}
                   </motion.button>
                 )}
 
-                {solvedStatus === true && (
+                {solvedStatus[problem._id || pIdx] === true && (
                   <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-1">
                     <CheckCircle sx={{ color: '#4caf50', fontSize: 22 }} />
                     <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 600 }}>Solved!</Typography>
                   </motion.div>
                 )}
-                {solvedStatus === false && (
+                {solvedStatus[problem._id || pIdx] === false && (
                   <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-1">
                     <RadioButtonUnchecked sx={{ color: '#ff9800', fontSize: 22 }} />
                     <Typography variant="body2" sx={{ color: '#ff9800', fontWeight: 600 }}>Not solved yet — keep going!</Typography>
