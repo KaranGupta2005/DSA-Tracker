@@ -100,6 +100,7 @@ function DashboardPage() {
 
   const [cfProfile, setCfProfile] = useState(null);
   const [lcStats, setLcStats] = useState(null);
+  const [lcCalendar, setLcCalendar] = useState(null);
   const [leaderboardData, setLeaderboardData] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState('');

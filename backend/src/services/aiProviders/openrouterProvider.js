@@ -8,7 +8,7 @@ const fetch = require('node-fetch');
  */
 async function callOpenRouter(prompt, apiKey) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
+  const timeout = setTimeout(() => controller.abort(), 20000);
 
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {

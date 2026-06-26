@@ -20,6 +20,7 @@ const sync = async (req, res, next) => {
           hard: result.stats.hard || 0,
           tags: result.tags || {},
         },
+        recentSubmissions: result.recentSubmissions || [],
         currentStreak: result.streak || 0,
         lastSyncedAt: new Date(),
       };

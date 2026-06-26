@@ -16,6 +16,7 @@ const memberSchema = new mongoose.Schema({
     hard: { type: Number, default: 0 },
     tags: { type: Map, of: Number, default: {} }
   },
+  recentSubmissions: { type: Array, default: [] },
   currentStreak: { type: Number, default: 0 },
   activityScore: { type: Number, default: 0 },
   lastSyncedAt: { type: Date, default: null },

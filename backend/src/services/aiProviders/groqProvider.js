@@ -8,7 +8,7 @@ const fetch = require('node-fetch');
  */
 async function callGroq(prompt, apiKey) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
+  const timeout = setTimeout(() => controller.abort(), 20000);
 
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -18,7 +18,7 @@ async function callGroq(prompt, apiKey) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
       }),
       signal: controller.signal,

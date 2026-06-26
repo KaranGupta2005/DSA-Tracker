@@ -42,7 +42,8 @@ async function callAI(prompt) {
       const result = await provider.fn(prompt, provider.key);
       return result;
     } catch (err) {
-      // Provider failed, try next one in the chain
+      // Provider failed, log and try next one in the chain
+      console.error(`[AI] Provider failed:`, err.message);
       continue;
     }
   }
