@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, useScroll, useTransform, useReducedMotion, AnimatePresence } from 'framer-motion';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CloseIcon from '@mui/icons-material/Close';
 import StyledButton from '../components/StyledButton';
 import Navbar from '../components/Navbar';
 import api from '@/utils/api';
@@ -24,20 +25,35 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 /**
- * Landing Page — replicates the Model_NextJs-project hero section style.
- * Full-screen hero with background image, parallax, gradient overlay,
- * left-aligned content, staggered animations, and scroll-down indicator.
- * Excludes About, Advisory, Chapters, Form sections per spec.
+ * Landing Page with floating notification subscribe popup.
  */
 export default function LandingPage() {
   const { scrollY } = useScroll();
   const prefersReducedMotion = useReducedMotion();
+
+  // Popup state
+  const [showPopup, setShowPopup] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
-  const [subscribeStatus, setSubscribeStatus] = useState(''); // 'success' | 'error' | 'denied' | ''
+  const [subscribeStatus, setSubscribeStatus] = useState(''); // 'success' | 'error' | 'denied'
   const [subscribeMessage, setSubscribeMessage] = useState('');
 
   const opacity = useTransform(scrollY, [0, 400], [1, 0]);
   const y = useTransform(scrollY, [0, 400], [0, -100]);
+
+  // Show popup after 3 seconds, only if not already dismissed this session
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const dismissed = sessionStorage.getItem('notif-popup-dismissed');
+    if (dismissed) return;
+
+    const timer = setTimeout(() => setShowPopup(true), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const dismissPopup = () => {
+    setShowPopup(false);
+    sessionStorage.setItem('notif-popup-dismissed', 'true');
+  };
 
   const handleSubscribe = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -48,7 +64,7 @@ export default function LandingPage() {
 
     if (!VAPID_PUBLIC_KEY) {
       setSubscribeStatus('error');
-      setSubscribeMessage('Push notifications are not configured.');
+      setSubscribeMessage('Notifications not configured.');
       return;
     }
 
@@ -60,7 +76,7 @@ export default function LandingPage() {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         setSubscribeStatus('denied');
-        setSubscribeMessage('Notification permission denied. Please enable notifications in browser settings.');
+        setSubscribeMessage('Permission denied. Enable in browser settings.');
         return;
       }
 
@@ -77,7 +93,7 @@ export default function LandingPage() {
           registration = await navigator.serviceWorker.ready;
         } catch (regErr) {
           setSubscribeStatus('error');
-          setSubscribeMessage('Service worker not available. Push notifications require HTTPS.');
+          setSubscribeMessage('Service worker unavailable. Requires HTTPS.');
           return;
         }
       }
@@ -90,16 +106,20 @@ export default function LandingPage() {
       await api.post('/contests/subscribe', { subscription });
 
       setSubscribeStatus('success');
-      setSubscribeMessage('Subscribed! You\'ll get contest reminders before they start.');
+      setSubscribeMessage('You\'re subscribed to contest alerts!');
+      // Auto-dismiss after 3s on success
+      setTimeout(() => {
+        setShowPopup(false);
+        sessionStorage.setItem('notif-popup-dismissed', 'true');
+      }, 3000);
     } catch (err) {
       console.error('Push subscription error:', err);
-      // If 401 (not logged in), show a helpful message
       if (err.response?.status === 401) {
         setSubscribeStatus('error');
-        setSubscribeMessage('Please login first to subscribe to notifications.');
+        setSubscribeMessage('Please login first to subscribe.');
       } else {
         setSubscribeStatus('error');
-        setSubscribeMessage('Failed to subscribe. Please login and try again.');
+        setSubscribeMessage('Failed to subscribe. Try again later.');
       }
     } finally {
       setSubscribing(false);
@@ -209,84 +229,89 @@ export default function LandingPage() {
         )}
       </motion.section>
 
-      {/* Subscribe to Notifications Section */}
-      <section className="relative w-full py-20 bg-gradient-to-b from-black/90 to-gray-900">
-        <motion.div
-          className="container mx-auto px-6 md:px-12 text-center"
-          initial={prefersReducedMotion ? {} : { opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-        >
-          <div className="max-w-xl mx-auto">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <NotificationsActiveIcon className="!text-indigo-400 !text-4xl" />
-              <h2 className="text-white text-3xl md:text-4xl font-bold">
-                Never Miss a Contest
-              </h2>
-            </div>
-            <p className="text-gray-300 text-lg mb-8">
-              Get push notifications before Codeforces and LeetCode contests start.
-              Stay ahead of the competition.
-            </p>
+      {/* Floating Notification Subscribe Popup */}
+      <AnimatePresence>
+        {showPopup && (
+          <motion.div
+            initial={{ opacity: 0, y: 80, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className="fixed bottom-6 right-6 z-50 w-[340px] max-w-[calc(100vw-48px)]"
+          >
+            <div className="relative bg-[#1a1a2e] border border-indigo-500/30 rounded-2xl shadow-2xl shadow-indigo-500/10 overflow-hidden">
+              {/* Glow accent */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500" />
 
-            {subscribeStatus === 'success' ? (
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="flex items-center justify-center gap-2 text-green-400 text-lg font-semibold"
+              {/* Close button */}
+              <button
+                onClick={dismissPopup}
+                className="absolute top-3 right-3 p-1 rounded-full text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Dismiss"
               >
-                <CheckCircleIcon className="!text-green-400" />
-                {subscribeMessage}
-              </motion.div>
-            ) : (
-              <>
-                <motion.button
-                  onClick={handleSubscribe}
-                  disabled={subscribing}
-                  whileHover={subscribing ? {} : { scale: 1.05 }}
-                  whileTap={subscribing ? {} : { scale: 0.95 }}
-                  className="inline-flex items-center gap-3 px-8 py-4 rounded-xl font-bold text-white text-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-                  style={{
-                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                    boxShadow: '0 4px 24px rgba(99, 102, 241, 0.4)',
-                  }}
-                >
-                  {subscribing ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Subscribing...
-                    </>
-                  ) : (
-                    <>
-                      <NotificationsActiveIcon />
-                      Subscribe to Contest Alerts
-                    </>
-                  )}
-                </motion.button>
+                <CloseIcon className="!text-lg" />
+              </button>
 
-                {subscribeMessage && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`mt-4 text-sm ${
-                      subscribeStatus === 'error' || subscribeStatus === 'denied'
-                        ? 'text-red-400'
-                        : 'text-gray-400'
-                    }`}
-                  >
+              <div className="px-5 pt-5 pb-4">
+                {/* Icon + Title */}
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="w-9 h-9 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                    <NotificationsActiveIcon className="!text-indigo-400 !text-xl" />
+                  </div>
+                  <h3 className="text-white font-bold text-base">Contest Alerts</h3>
+                </div>
+
+                <p className="text-gray-400 text-sm leading-relaxed mb-4">
+                  Get notified before Codeforces & LeetCode contests start. Never miss a round again.
+                </p>
+
+                {/* Status messages */}
+                {subscribeStatus === 'success' ? (
+                  <div className="flex items-center gap-2 text-green-400 text-sm font-medium">
+                    <CheckCircleIcon className="!text-lg" />
                     {subscribeMessage}
-                  </motion.p>
-                )}
-              </>
-            )}
+                  </div>
+                ) : (
+                  <>
+                    {/* Subscribe button */}
+                    <button
+                      onClick={handleSubscribe}
+                      disabled={subscribing}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-white text-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer hover:brightness-110 active:scale-[0.98]"
+                      style={{
+                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                      }}
+                    >
+                      {subscribing ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Subscribing...
+                        </>
+                      ) : (
+                        <>
+                          <NotificationsActiveIcon className="!text-base" />
+                          Subscribe to Notifications
+                        </>
+                      )}
+                    </button>
 
-            <p className="text-gray-500 text-xs mt-6">
-              You can unsubscribe anytime from the Contests page.
-            </p>
-          </div>
-        </motion.div>
-      </section>
+                    {/* Error/denied message */}
+                    {subscribeMessage && (
+                      <p className={`mt-2.5 text-xs text-center ${
+                        subscribeStatus === 'error' || subscribeStatus === 'denied'
+                          ? 'text-red-400'
+                          : 'text-gray-500'
+                      }`}>
+                        {subscribeMessage}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
