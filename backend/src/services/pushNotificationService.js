@@ -50,7 +50,10 @@ async function notifyUpcomingContests() {
       // Contest starts within 2 hours but hasn't started yet
       if (startTime > now && startTime <= twoHoursFromNow) {
         upcomingContests.push({
-          ...contest,
+          name: contest.name,
+          startTime: contest.startTime,
+          duration: contest.duration,
+          url: contest.url,
           platform: cache.platform,
         });
       }
