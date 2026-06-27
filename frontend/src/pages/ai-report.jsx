@@ -59,7 +59,7 @@ function AIReportPage() {
     setReport(null);
 
     try {
-      const response = await api.post('/ai/report');
+      const response = await api.post('/ai/report', {}, { timeout: 45000 });
       setReport(response.data);
     } catch (err) {
       const status = err.response?.status;
