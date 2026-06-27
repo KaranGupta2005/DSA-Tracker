@@ -1,5 +1,5 @@
 // IEEE DTU DSA Tracker — Service Worker
-const CACHE_NAME = 'dsa-tracker-v2';
+const CACHE_NAME = 'dsa-tracker-v3';
 
 // Install: cache essential assets
 self.addEventListener('install', (event) => {
@@ -71,6 +71,7 @@ self.addEventListener('fetch', (event) => {
 
 // Push notification handler
 self.addEventListener('push', (event) => {
+  console.log('[SW] Push event received');
   let data = {};
 
   try {
@@ -89,6 +90,8 @@ self.addEventListener('push', (event) => {
     body: data.body || data.message || 'You have a new notification!',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-192x192.png',
+    tag: 'dsa-tracker-' + Date.now(),
+    renotify: true,
     data: { url: data.url || '/' },
     vibrate: [200, 100, 200],
     requireInteraction: true,
