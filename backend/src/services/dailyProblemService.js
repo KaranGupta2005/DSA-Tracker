@@ -16,7 +16,7 @@ const fetchProblemFromCF = async (contestId, index) => {
     const timeout = setTimeout(() => controller.abort(), 10000);
 
     response = await fetch(
-      `https://codeforces.com/api/contest.standings?contestId=${contestId}&from=1&count=1`,
+      `https://codeforces.com/api/contest.standings?contestId=${contestId}`,
       { signal: controller.signal }
     );
 
