@@ -28,8 +28,8 @@ function getProviderChain() {
  */
 async function callAI(prompt) {
   const providers = [
-    { key: config.geminiApiKey, fn: callGemini },
     { key: config.groqApiKey, fn: callGroq },
+    { key: config.geminiApiKey, fn: callGemini },
     { key: config.openrouterApiKey, fn: callOpenRouter },
   ];
 
