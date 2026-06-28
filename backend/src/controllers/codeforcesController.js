@@ -1,13 +1,26 @@
 const codeforcesService = require('../services/codeforcesService');
+const Member = require('../Models/Member');
 
 /**
  * GET /api/codeforces/profile/:handle
  * Fetches the Codeforces profile (rating, rank, avatar) for the given handle.
+ * Also persists updated rating/rank to the Member model if the requester owns the handle.
  */
 const getProfile = async (req, res, next) => {
   try {
     const { handle } = req.params;
     const profile = await codeforcesService.getProfile(handle);
+
+    // Persist rating/rank update if the logged-in user owns this handle
+    if (req.user && req.user.memberId) {
+      const member = await Member.findById(req.user.memberId);
+      if (member && member.codeforcesHandle === handle) {
+        member.codeforcesRating = profile.rating || member.codeforcesRating;
+        member.codeforcesRank = profile.rank || member.codeforcesRank;
+        await member.save();
+      }
+    }
+
     res.json(profile);
   } catch (err) {
     next(err);
